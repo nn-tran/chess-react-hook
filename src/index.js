@@ -5,7 +5,7 @@ import './index.css';
 function Square(props) {
   return (
     <button
-      className="square"
+      className = {(props.idX + props.idY )%2 === 0 ? "square" : "squareBlack"}
       onClick = {props.onClick}
     >
       {props.value}
@@ -61,6 +61,8 @@ class Board extends React.Component {
   renderSquare(i) {
     return (
     <Square
+      idX={i%8}
+      idY={i/8>>0}
       value={this.state.squares[[i]]}
       onClick={() => this.handleClick(i)}
     />
