@@ -2,7 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 
+
 function Square(props) {
+
   return (
     <button
       className = {(props.idX + props.idY )%2 === 0 ? "square" : "squareBlack"}
@@ -18,7 +20,7 @@ class Board extends React.Component {
       super(props);
       this.state = {
         squares: Array(64).fill(null),
-
+        selected: -1,
         xNext: true,
       };
       //white pieces
@@ -51,11 +53,18 @@ class Board extends React.Component {
 
   handleClick(i){
     const squares = this.state.squares.slice();
-    squares[i] = this.state.xNext ? 'X' : 'O';
-    this.setState({
-      squares: squares,
-      xNext: !this.state.xNext,
-    });
+    const selected = this.state.selected;
+    if (selected == -1 || selected == i || squares[selected] == null) {
+      this.setState({selected: i});
+    } else {
+      squares[i] = squares[selected];
+      squares[selected] = null;
+      this.setState({
+        squares: squares,
+        selected: -1,
+        xNext: !this.state.xNext,
+      });
+    }
   }
 
   renderSquare(i) {
@@ -63,6 +72,7 @@ class Board extends React.Component {
     <Square
       idX={i%8}
       idY={i/8>>0}
+      selected={(this.state.selected==i)? true : false}
       value={this.state.squares[[i]]}
       onClick={() => this.handleClick(i)}
     />
@@ -70,7 +80,8 @@ class Board extends React.Component {
   }
 
   render() {
-    const status = 'Next player: ' + (this.state.xNext ? 'White' : 'Black');
+    const status = 'Next player: ' + (this.state.xNext ? 'White' : 'Black')
+      + '\nSelected: ' + this.state.selected;
     var counter = 0;
     return (
       <div>

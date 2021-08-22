@@ -33,7 +33,7 @@ ol, ul {
 }
 
 .square:focus {
-  outline: none;
+  background: #0f0;
 }
 
 .squareBlack {
@@ -52,7 +52,7 @@ ol, ul {
 }
 
 .squareBlack:focus {
-  outline: none;
+  background: #0f0;
 }
 
 .kbd-navigation .square:focus {
