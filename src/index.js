@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
+
 const mailbox = [
      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
      -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -27,23 +28,21 @@ const mailbox64 = [
     91, 92, 93, 94, 95, 96, 97, 98
 ];
 
-const slide = [false,false,true,true,true,false];
-
-
-const offset = {
-    '\u2658': [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */
-	'\u2657': [ -11,  -9,  9, 11 ], /* BISHOP */
-	'\u2656': [ -10,  -1,  1, 10 ], /* ROOK */
-	'\u2655': [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */
-	'\u2654': [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */
+const data = {
+    '\u2659':{ slide: false, offset: {capture: [ 9, -11 ], move: -10}}, /* PAWN */
+    '\u2658':{ slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */ },
+	'\u2657':{ slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */ },
+	'\u2656':{ slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */ },
+	'\u2655':{ slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */ },
+	'\u2654':{ slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */ },
 
     //black pieces
-    '\u265e': [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */
-    '\u265d': [ -11,  -9,  9, 11 ], /* BISHOP */
-    '\u265c': [ -10,  -1,  1, 10 ], /* ROOK */
-    '\u265b': [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */
-    '\u265a': [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */
-
+    '\u265f':{ slide: false, offset: {capture: [ -9, 11 ], move: 10}}, /* PAWN */
+    '\u265e':{ slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */},
+    '\u265d':{ slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */},
+    '\u265c':{ slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */},
+    '\u265b':{ slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */},
+    '\u265a':{ slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
 };
 
 
@@ -99,31 +98,50 @@ class Board extends React.Component {
     }
   }
 
+  genMove(start, final, type){
+
+  }
+
   generateMoves(i){
     let board = this.state.squares;
     let colors = this.state.colors;
     let enemy = this.state.bNext;
-    if (colors[i] != enemy && board[i] != null){
+    if (colors[i] !== enemy && board[i] !== null){
       let piece = board[i];
-      if (piece != '\u2659' && piece != '\u265f'){//non-pawns
-        for (let j = 0; j < offset[piece]; ++j){
+      if (piece !== '\u2659' && piece !== '\u265f'){//non-pawns
+        data[piece].offset.forEach(element => {
           for (let n = i;;){
-            n = mailbox[mailbox64[n] + offset[piece][j]];
-            if (n == -1) break; /* outside board */
-            if (colors[n] != null) {
-              if (colors[n] == enemy)
-                //genMove(i, n, 1); /* capture from i to n */
+            n = mailbox[mailbox64[n] + element];
+            if (n === -1) break; /* outside board */
+            if (colors[n] !== null) {
+              if (colors[n] === enemy)
+                this.genMove(i, n, 1); /* capture from i to n */
               break;
             }
-            //genMove(i, n, 0); /* quiet move from i to n */
-            if (!slide[piece]) break; /* next direction */
+            this.genMove(i, n, 0); /* quiet move from i to n */
+            if (!data[piece].slide) break; /* next direction */
+          }
+        });
+
+      } else {//pawns
+        data[piece].offset.capture.forEach(element => {
+          let n = i;
+          n = mailbox[mailbox64[n] + element];
+          if (n !== -1 && colors[n] === enemy) ;//genMove(i, n, 1);
+        });
+        let n = mailbox[mailbox64[i] + data[piece].offset.move];
+        if (colors[n] === null){
+          this.genMove(i,n,0);
+          if ( (n <= 15 && n >= 8 && colors[i] === 1)
+            || (n <= 55 && n >= 48 && colors[i] === 0))
+          {
+            n = mailbox[mailbox64[n] + data[piece].offset.move];
+            if (colors[n] === null) this.genMove(i,n,0);
           }
         }
-      } else {
-        //pawns
+
       }
     }
-
   }
 
   handleClick(i){
@@ -157,7 +175,7 @@ class Board extends React.Component {
   render() {
     const status = 'Next player: ' + (this.state.bNext ? 'White' : 'Black')
       + '\nSelected: ' + this.state.selected;
-    var counter = 0;
+    let counter = 0;
     return (
       <div>
         <div className="status">{status}</div>
