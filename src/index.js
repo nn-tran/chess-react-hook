@@ -29,7 +29,7 @@ const mailbox64 = [
 ];
 
 const data = {
-    '\u2659':{ slide: false, offset: {capture: [ 9, -11 ], move: -10}}, /* PAWN */
+    '\u2659':{ offset: {capture: [ -9, -11 ], move: -10, enPassant: [-1,1]}}, /* PAWN */
     '\u2658':{ slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */ },
 	'\u2657':{ slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */ },
 	'\u2656':{ slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */ },
@@ -37,7 +37,7 @@ const data = {
 	'\u2654':{ slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */ },
 
     //black pieces
-    '\u265f':{ slide: false, offset: {capture: [ -9, 11 ], move: 10}}, /* PAWN */
+    '\u265f':{ offset: {capture: [ 9, 11 ], move: 10, enPassant: [-1,1]}}, /* PAWN */
     '\u265e':{ slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */},
     '\u265d':{ slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */},
     '\u265c':{ slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */},
@@ -65,51 +65,75 @@ class Board extends React.Component {
       squares: Array(64).fill(null),
       colors: Array(64).fill(null),
       legals: Array(64).fill(0),
+      canCastle: true,
+      enPassant: -1,
       selected: -1,
       bNext: true,
     };
+
+    const board = this.state.squares;
     //white pieces
-    this.state.squares[63] = '\u2656';
-    this.state.squares[62] = '\u2658';
-    this.state.squares[61] = '\u2657';
-    this.state.squares[60] = '\u2654';
-    this.state.squares[59] = '\u2655';
-    this.state.squares[58] = '\u2657';
-    this.state.squares[57] = '\u2658';
-    this.state.squares[56] = '\u2656';
+    board[63] = '\u2656';
+    board[62] = '\u2658';
+    board[61] = '\u2657';
+    board[60] = '\u2654';
+    board[59] = '\u2655';
+    board[58] = '\u2657';
+    board[57] = '\u2658';
+    board[56] = '\u2656';
     for (let i = 0; i < 8; ++i){
-      this.state.squares[i+48] = '\u2659';
+      board[i+48] = '\u2659';
       this.state.colors[i+48] = 1;
       this.state.colors[i+56] = 1;
     }
     //black pieces
-    this.state.squares[0] = '\u265c';
-    this.state.squares[1] = '\u265e';
-    this.state.squares[2] = '\u265d';
-    this.state.squares[3] = '\u265b';
-    this.state.squares[4] = '\u265a';
-    this.state.squares[5] = '\u265d';
-    this.state.squares[6] = '\u265e';
-    this.state.squares[7] = '\u265c';
+    board[0] = '\u265c';
+    board[1] = '\u265e';
+    board[2] = '\u265d';
+    board[3] = '\u265b';
+    board[4] = '\u265a';
+    board[5] = '\u265d';
+    board[6] = '\u265e';
+    board[7] = '\u265c';
     for (let i = 0; i < 8; ++i){
-      this.state.squares[i+8] = '\u265f';
+      board[i+8] = '\u265f';
       this.state.colors[i+8] = 0;
       this.state.colors[i] = 0;
     }
   }
 
+  castle(i, side){
+
+  }
+
+  enPassant(i, n, m){
+    const board = this.state.squares;
+
+    board[m] = board[i];
+    board[i] = null;
+    board[n] = null;
+  }
+
   genMove(start, final, type){
+    const board = this.state.squares;
+    const colors = this.state.colors;
+    const enemy = this.state.bNext;
+
+    if (!type){
+
+    }
 
   }
 
   generateMoves(i){
-    let board = this.state.squares;
-    let colors = this.state.colors;
-    let enemy = this.state.bNext;
+    const board = this.state.squares;
+    const colors = this.state.colors;
+    const enemy = this.state.bNext;
     if (colors[i] !== enemy && board[i] !== null){
-      let piece = board[i];
-      if (piece !== '\u2659' && piece !== '\u265f'){//non-pawns
-        data[piece].offset.forEach(element => {
+      let pieceID = board[i];
+      let piece = data[pieceID];
+      if (pieceID !== '\u2659' && pieceID !== '\u265f'){//non-pawns
+        piece.offset.forEach(element => {
           for (let n = i;;){
             n = mailbox[mailbox64[n] + element];
             if (n === -1) break; /* outside board */
@@ -119,24 +143,30 @@ class Board extends React.Component {
               break;
             }
             this.genMove(i, n, 0); /* quiet move from i to n */
-            if (!data[piece].slide) break; /* next direction */
+            if (!data[pieceID].slide) break; /* next direction */
           }
         });
 
-      } else {//pawns
-        data[piece].offset.capture.forEach(element => {
+      } else {//pawns have custom behaviour
+        piece.offset.capture.forEach((element, index) => {//capturing diagonally forward
           let n = i;
           n = mailbox[mailbox64[n] + element];
-          if (n !== -1 && colors[n] === enemy) ;//genMove(i, n, 1);
+          if (n !== -1 && colors[n] === enemy) this.genMove(i, n, 1);
+          else if (this.state.enPassant === n) {
+            this.genMove(i, n, 2);
+          }
         });
-        let n = mailbox[mailbox64[i] + data[piece].offset.move];
+        let n = mailbox[mailbox64[i] + piece.offset.move];//moving forward
         if (colors[n] === null){
           this.genMove(i,n,0);
           if ( (n <= 15 && n >= 8 && colors[i] === 1)
             || (n <= 55 && n >= 48 && colors[i] === 0))
-          {
-            n = mailbox[mailbox64[n] + data[piece].offset.move];
-            if (colors[n] === null) this.genMove(i,n,0);
+          {//if the piece could land on the 3rd/6th rank, they must have started from the origin
+            let m = mailbox[mailbox64[n] + piece.offset.move];
+            if (colors[m] === null) {
+              this.genMove(i, m, 0);
+              this.enPassant = n;
+            }
           }
         }
 
