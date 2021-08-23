@@ -29,14 +29,22 @@ const mailbox64 = [
 
 const slide = [false,false,true,true,true,false];
 
-const offset = [
-    [], /* PAWN */
-	[ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */
-	[ -11,  -9,  9, 11 ], /* BISHOP */
-	[ -10,  -1,  1, 10 ], /* ROOK */
-	[ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */
-	[ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */
-];
+
+const offset = {
+    '\u2658': [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */
+	'\u2657': [ -11,  -9,  9, 11 ], /* BISHOP */
+	'\u2656': [ -10,  -1,  1, 10 ], /* ROOK */
+	'\u2655': [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */
+	'\u2654': [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */
+
+    //black pieces
+    '\u265e': [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */
+    '\u265d': [ -11,  -9,  9, 11 ], /* BISHOP */
+    '\u265c': [ -10,  -1,  1, 10 ], /* ROOK */
+    '\u265b': [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */
+    '\u265a': [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */
+
+};
 
 
 function Square(props) {
@@ -57,6 +65,7 @@ class Board extends React.Component {
     this.state = {
       squares: Array(64).fill(null),
       colors: Array(64).fill(null),
+      legals: Array(64).fill(0),
       selected: -1,
       bNext: true,
     };
@@ -90,14 +99,31 @@ class Board extends React.Component {
     }
   }
 
-  generateMoves(){
+  generateMoves(i){
     let board = this.state.squares;
     let colors = this.state.colors;
-    board.forEach((element, index) => {
-      if (element != null && colors[index] != bNext){
-      
+    let enemy = this.state.bNext;
+    if (colors[i] != enemy && board[i] != null){
+      let piece = board[i];
+      if (piece != '\u2659' && piece != '\u265f'){//non-pawns
+        for (let j = 0; j < offset[piece]; ++j){
+          for (let n = i;;){
+            n = mailbox[mailbox64[n] + offset[piece][j]];
+            if (n == -1) break; /* outside board */
+            if (colors[n] != null) {
+              if (colors[n] == enemy)
+                //genMove(i, n, 1); /* capture from i to n */
+              break;
+            }
+            //genMove(i, n, 0); /* quiet move from i to n */
+            if (!slide[piece]) break; /* next direction */
+          }
+        }
+      } else {
+        //pawns
       }
-    });
+    }
+
   }
 
   handleClick(i){
