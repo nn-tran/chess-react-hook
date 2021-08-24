@@ -106,21 +106,24 @@ class Board extends React.Component {
 
   }
 
-  enPassant(i, n, m){
-    const board = this.state.squares;
-
-    board[m] = board[i];
-    board[i] = null;
-    board[n] = null;
+  castle(direction){
+    
   }
 
-  genMove(start, final, type){
-    const board = this.state.squares;
+  generateMove(start, final, type){
+    const board = this.state.squares.slice();
     const colors = this.state.colors;
     const enemy = this.state.bNext;
 
-    if (!type){
-
+    if (type !== 2){
+      board[final] = board[start];
+      board[start] = null;
+    } else {//en passant
+      board[final] = board[start];
+      board[start] = null;
+      let direction = (mailbox64[start] - mailbox64[final]) % 9 == 0 ? -1 : 1;
+      //no regular mailbox check because generateMoves already checked
+      board[start + direction] = null;
     }
 
   }
@@ -139,11 +142,11 @@ class Board extends React.Component {
             if (n === -1) break; /* outside board */
             if (colors[n] !== null) {
               if (colors[n] === enemy)
-                this.genMove(i, n, 1); /* capture from i to n */
+                this.generateMove(i, n, 1); /* capture from i to n */
               break;
             }
-            this.genMove(i, n, 0); /* quiet move from i to n */
-            if (!data[pieceID].slide) break; /* next direction */
+            this.generateMove(i, n, 0); /* quiet move from i to n */
+            if (!piece.slide) break; /* next direction */
           }
         });
 
@@ -151,20 +154,20 @@ class Board extends React.Component {
         piece.offset.capture.forEach((element, index) => {//capturing diagonally forward
           let n = i;
           n = mailbox[mailbox64[n] + element];
-          if (n !== -1 && colors[n] === enemy) this.genMove(i, n, 1);
+          if (n !== -1 && colors[n] === enemy) this.generateMove(i, n, 1);
           else if (this.state.enPassant === n) {
-            this.genMove(i, n, 2);
+            this.generateMove(i, n, 2);
           }
         });
         let n = mailbox[mailbox64[i] + piece.offset.move];//moving forward
         if (colors[n] === null){
-          this.genMove(i,n,0);
+          this.generateMove(i,n,0);
           if ( (n <= 15 && n >= 8 && colors[i] === 1)
             || (n <= 55 && n >= 48 && colors[i] === 0))
-          {//if the piece could land on the 3rd/6th rank, they must have started from the origin
+          {//if the piece could land on the 3rd/6th rank, it must have started from the origin
             let m = mailbox[mailbox64[n] + piece.offset.move];
             if (colors[m] === null) {
-              this.genMove(i, m, 0);
+              this.generateMove(i, m, 0);
               this.enPassant = n;
             }
           }
