@@ -65,7 +65,8 @@ class Board extends React.Component {
       squares: Array(64).fill(null),
       colors: Array(64).fill(null),
       legals: Array(64).fill(0),
-      canCastle: true,
+      moves: [],
+      canCastle: Array(4).fill(1),//white-long, white-short, black-long, black-short
       enPassant: -1,
       selected: -1,
       bNext: true,
@@ -102,20 +103,25 @@ class Board extends React.Component {
     }
   }
 
-  castle(i, side){
-
-  }
-
   castle(direction){
-    
+    const board = this.state.squares.slice();
+    const colors = this.state.colors.slice();
+    const enemy = this.state.bNext;
+
   }
 
   generateMove(start, final, type){
     const board = this.state.squares.slice();
     const colors = this.state.colors;
     const enemy = this.state.bNext;
+    const castle = this.state.canCastle.slice();
 
-    if (type !== 2){
+    if (type < 2){
+      castle[0] &= (start !== 56) && (start !== 60);//left white rook moved or white king moved
+      castle[1] &= (start !== 63) && (start !== 60);//right white rook moved or white king moved
+      castle[2] &= (start !==  0) && (start !==  4);//left black rook moved or black king moved
+      castle[3] &= (start !==  7) && (start !==  4);//right white rook moved or black king moved
+
       board[final] = board[start];
       board[start] = null;
     } else {//en passant
