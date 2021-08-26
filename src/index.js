@@ -64,7 +64,14 @@ class Board extends React.Component {
     this.state = {
       squares: Array(64).fill(null),
       colors: Array(64).fill(null),
+      //generate move per piece requires tracking pieces
+      pieces: [48,49,50,51,52,53,54,55,
+               56,57,58,59,60,61,62,63,//white
+                8, 9,10,11,12,13,14,15,
+                0, 1, 2, 3, 4, 5, 6, 7],//black
+
       legals: Array(64).fill(0),
+      kingSafe: Array(64).fill(0),
       moves: [],
       canCastle: Array(4).fill(1),//white-long, white-short, black-long, black-short
       enPassant: -1,
@@ -104,16 +111,16 @@ class Board extends React.Component {
   }
 
   castle(direction){
-    const board = this.state.squares.slice();
-    const colors = this.state.colors.slice();
-    const enemy = this.state.bNext;
-
+    const toCheck = [];
+    executeMove();
+    executeMove();
   }
 
-  generateMove(start, final, type){
+
+
+  executeMove(start, final, type){
     const board = this.state.squares.slice();
     const colors = this.state.colors;
-    const enemy = this.state.bNext;
     const castle = this.state.canCastle.slice();
 
     if (type < 2){
@@ -124,20 +131,30 @@ class Board extends React.Component {
 
       board[final] = board[start];
       board[start] = null;
+      colors[final] = colors[start];
+      colors[start] = null;
     } else {//en passant
       board[final] = board[start];
       board[start] = null;
-      let direction = (mailbox64[start] - mailbox64[final]) % 9 == 0 ? -1 : 1;
-      //no regular mailbox check because generateMoves already checked
+      colors[final] = colors[start];
+      colors[start] = null;
+      let direction = (final - start) % 8;
+      //no mailbox check because generateMoves already checked
       board[start + direction] = null;
+      colors[start + direction] = null;
     }
-
+    this.setState({
+      squares: board,
+      bNext: !this.state.bNext,
+    });
   }
 
-  generateMoves(i){
-    const board = this.state.squares;
-    const colors = this.state.colors;
-    const enemy = this.state.bNext;
+  generateMoves(p){
+    const board = this.state.squares.slice();
+    const colors = this.state.colors.slice();
+    const enemy = this.state.bNext? 1 : 0;
+    const i = this.state.pieces[p];
+    let moves = this.state.moves.slice();
     if (colors[i] !== enemy && board[i] !== null){
       let pieceID = board[i];
       let piece = data[pieceID];
@@ -148,39 +165,38 @@ class Board extends React.Component {
             if (n === -1) break; /* outside board */
             if (colors[n] !== null) {
               if (colors[n] === enemy)
-                this.generateMove(i, n, 1); /* capture from i to n */
+                moves.push([i, n, 1]); /* capture from i to n */
               break;
             }
-            this.generateMove(i, n, 0); /* quiet move from i to n */
+            moves.push([i, n, 0]); /* quiet move from i to n */
             if (!piece.slide) break; /* next direction */
           }
         });
-
       } else {//pawns have custom behaviour
         piece.offset.capture.forEach((element, index) => {//capturing diagonally forward
           let n = i;
           n = mailbox[mailbox64[n] + element];
-          if (n !== -1 && colors[n] === enemy) this.generateMove(i, n, 1);
+          if (n !== -1 && colors[n] === enemy) moves.push([i, n, 1]);
           else if (this.state.enPassant === n) {
-            this.generateMove(i, n, 2);
+            moves.push([i, n, 2]);;
           }
         });
         let n = mailbox[mailbox64[i] + piece.offset.move];//moving forward
         if (colors[n] === null){
-          this.generateMove(i,n,0);
+          moves.push([i, n, 0]);
           if ( (n <= 15 && n >= 8 && colors[i] === 1)
             || (n <= 55 && n >= 48 && colors[i] === 0))
           {//if the piece could land on the 3rd/6th rank, it must have started from the origin
             let m = mailbox[mailbox64[n] + piece.offset.move];
             if (colors[m] === null) {
-              this.generateMove(i, m, 0);
-              this.enPassant = n;
+              moves.push([i, n, 0]);
+              this.setState({enPassant: n});
             }
           }
         }
-
       }
     }
+    this.setState({moves: moves});
   }
 
   handleClick(i){
