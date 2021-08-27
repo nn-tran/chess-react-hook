@@ -65,14 +65,13 @@ class Board extends React.Component {
       squares: Array(64).fill(null),
       colors: Array(64).fill(null),
       //generate move per piece requires tracking pieces
-      pieces: [48,49,50,51,52,53,54,55,
-               56,57,58,59,60,61,62,63,//white
-                8, 9,10,11,12,13,14,15,
-                0, 1, 2, 3, 4, 5, 6, 7],//black
+      pieces: [48, 49, 50, 51, 52, 53, 54, 55,
+               56, 57, 58, 59, 60, 61, 62, 63,//white
+                8,  9, 10, 11, 12, 13, 14, 15,
+                0,  1,  2,  3,  4,  5,  6,  7],//black
 
       legals: Array(64).fill(0),
-      kingSafe: Array(64).fill(0),
-      moves: [],
+      kingSafe: Array(64).fill(0),//0: neither safe, 1: white king safe, 2: black king safe, 3: both kings safe
       canCastle: Array(4).fill(1),//white-long, white-short, black-long, black-short
       enPassant: -1,
       selected: -1,
@@ -110,10 +109,46 @@ class Board extends React.Component {
     }
   }
 
+  generateDeathMap(){//king safety map
+    const kingSafe = Array(64).fill(0);
+    const bMoves = [];
+    const wMoves = [];
+    for (let j = 0; j < 16; ++j){
+      wMoves.concat(this.generateMoves(this.state.pieces[j]));
+    }
+    wMoves.forEach((element) => {//an element is a move, i.e. [start, final, type]
+      kingSafe[element[1]] |= 1;
+    });
+    for (let j = 16; j < 32; ++j){
+      bMoves.concat(this.generateMoves(this.state.pieces[j]));
+    }
+    bMoves.forEach((element) => {
+      kingSafe[element[1]] |= 2;
+    });
+    this.setState({kingSafe: kingSafe});
+  }
+
   castle(direction){
-    const toCheck = [];
-    executeMove();
-    executeMove();
+    switch(direction){
+      case 0:
+        this.executeMove(60,58, 0);//0-0-0
+        this.executeMove(56,59, 0);
+        break;
+      case 1:
+        this.executeMove(60,62, 0);//0-0
+        this.executeMove(63,61, 0);
+        break;
+      case 2:
+        this.executeMove( 4, 2, 0);//...0-0-0
+        this.executeMove( 0, 3, 0);
+        break;
+      case 3:
+        this.executeMove( 4, 6, 0);//...0-0
+        this.executeMove( 7, 5, 0);
+        break;
+      default:
+        throw 'castle bug';
+    }
   }
 
 
@@ -154,7 +189,7 @@ class Board extends React.Component {
     const colors = this.state.colors.slice();
     const enemy = this.state.bNext? 1 : 0;
     const i = this.state.pieces[p];
-    let moves = this.state.moves.slice();
+    let moves = [];
     if (colors[i] !== enemy && board[i] !== null){
       let pieceID = board[i];
       let piece = data[pieceID];
@@ -196,7 +231,7 @@ class Board extends React.Component {
         }
       }
     }
-    this.setState({moves: moves});
+    return moves;
   }
 
   handleClick(i){
