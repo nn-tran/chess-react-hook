@@ -47,7 +47,6 @@ const data = {
 
 
 function Square(props) {
-
   return (
     <button
       className = {(props.idX + props.idY ) %2 === 0 ? "square" : "squareBlack"}
@@ -109,6 +108,18 @@ class Board extends React.Component {
     }
   }
 
+  moveLegal(move){//move is [start, final, type]
+    const old = this.state.board.slice();
+    this.executeMove(move);
+    if ((this.state.kingSafe[this.state.pieces[12]] & 1)//white king safe
+      &&(this.state.kingSafe[this.state.pieces[28]] & 2)){//black king safe
+        return;
+      }
+    this.setState({
+      squares: old
+    });
+  }
+
   generateDeathMap(){//king safety map
     const kingSafe = Array(64).fill(0);
     const bMoves = [];
@@ -117,15 +128,32 @@ class Board extends React.Component {
       wMoves.concat(this.generateMoves(this.state.pieces[j]));
     }
     wMoves.forEach((element) => {//an element is a move, i.e. [start, final, type]
-      kingSafe[element[1]] |= 1;
+      kingSafe[element[1]] |= 2;//all white-accessible squares are dangerous for the black king
     });
     for (let j = 16; j < 32; ++j){
       bMoves.concat(this.generateMoves(this.state.pieces[j]));
     }
     bMoves.forEach((element) => {
-      kingSafe[element[1]] |= 2;
+      kingSafe[element[1]] |= 1;
     });
     this.setState({kingSafe: kingSafe});
+  }
+
+  switchPlayer(){
+    this.setState({bNext:!this.state.bNext});
+  }
+
+  updateLegals(i){
+    const p = this.state.pieces.indexOf(i);
+    if (p === undefined) return;
+    const moves = this.generateMoves(p);
+    let legals = Array(64).fill(0);
+    moves.forEach((element) => {
+        legals[element[1]] = 1;
+    });
+    this.setState({
+      legals: legals,
+    });
   }
 
   castle(direction){
@@ -151,13 +179,15 @@ class Board extends React.Component {
     }
   }
 
-
-
-  executeMove(start, final, type){
+  executeMove(start, final, type){//does not check if move is legal
     const board = this.state.squares.slice();
     const colors = this.state.colors;
     const castle = this.state.canCastle.slice();
+    const pieces = this.state.pieces.slice();
 
+    if (board[final] !== null){
+      pieces[this.state.pieces.indexOf(final)] = -1;//piece is captured.
+    }
     if (type < 2){
       castle[0] &= (start !== 56) && (start !== 60);//left white rook moved or white king moved
       castle[1] &= (start !== 63) && (start !== 60);//right white rook moved or white king moved
@@ -180,7 +210,9 @@ class Board extends React.Component {
     }
     this.setState({
       squares: board,
-      bNext: !this.state.bNext,
+      colors: colors,
+      pieces: pieces,
+      canCastle: castle,
     });
   }
 
@@ -191,8 +223,9 @@ class Board extends React.Component {
     const i = this.state.pieces[p];
     let moves = [];
     if (colors[i] !== enemy && board[i] !== null){
-      let pieceID = board[i];
-      let piece = data[pieceID];
+      const pieceID = board[i];
+      const piece = data[pieceID];
+      if (piece === undefined) return [];
       if (pieceID !== '\u2659' && pieceID !== '\u265f'){//non-pawns
         piece.offset.forEach(element => {
           for (let n = i;;){
@@ -237,16 +270,17 @@ class Board extends React.Component {
   handleClick(i){
     const squares = this.state.squares.slice();
     const selected = this.state.selected;
-    if (selected === -1 || selected === i || squares[selected] === null) {
+    if (selected === -1 //haven't clicked
+       || selected === i //clicked the same square
+       || squares[selected] === null //clicked an empty square
+       || this.state.legals[i] === 0 //clicked an illegal square
+       || this.state.colors[i] === (this.state.bNext ? 0 : 1) //clicked an enemy piece
+       ) {
+      this.updateLegals(i);
       this.setState({selected: i});
     } else {
-      squares[i] = squares[selected];
-      squares[selected] = null;
-      this.setState({
-        squares: squares,
-        selected: -1,
-        bNext: !this.state.bNext,
-      });
+      this.executeMove(selected, i, 0);
+      this.switchPlayer();
     }
   }
 
@@ -255,7 +289,8 @@ class Board extends React.Component {
     <Square
       idX={i%8}
       idY={i>>3}
-      selected={(this.state.selected==i)? true : false}
+      selected={(this.state.selected===i)? true : false}
+      legal={(this.state.legals[i]===1)? true : false}
       value={this.state.squares[[i]]}
       onClick={() => this.handleClick(i)}
     />
