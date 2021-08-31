@@ -69,7 +69,7 @@ class Board extends React.Component {
                 8,  9, 10, 11, 12, 13, 14, 15,
                 0,  1,  2,  3,  4,  5,  6,  7],//black
 
-      legals: Array(64).fill(0),
+      legals: Array(64).fill(-1),
       kingSafe: Array(64).fill(0),//0: neither safe, 1: white king safe, 2: black king safe, 3: both kings safe
       canCastle: Array(4).fill(1),//white-long, white-short, black-long, black-short
       enPassant: -1,
@@ -145,66 +145,70 @@ class Board extends React.Component {
 
   updateLegals(i){
     const p = this.state.pieces.indexOf(i);
-    if (p === undefined) return;
-    const moves = this.generateMoves(p);
     let legals = Array(64).fill(0);
-    moves.forEach((element) => {
-        legals[element[1]] = 1;
-    });
-    this.setState({
-      legals: legals,
-    });
+    if (p>=0) {
+      const moves = this.generateMoves(p);
+      moves.forEach((element) => {
+        legals[element[2]] = element[3];
+      });
+    }
+    this.setState({legals: legals});
+
+    //console.clear();
+    //console.log(legals);
   }
 
   castle(direction){
     switch(direction){
       case 0:
-        this.executeMove(60,58, 0);//0-0-0
-        this.executeMove(56,59, 0);
+        this.executeMove(12,60,58, 0);//0-0-0
+        this.executeMove( 8,56,59, 0);
         break;
       case 1:
-        this.executeMove(60,62, 0);//0-0
-        this.executeMove(63,61, 0);
+        this.executeMove(12,60,62, 0);//0-0
+        this.executeMove(15,63,61, 0);
         break;
       case 2:
-        this.executeMove( 4, 2, 0);//...0-0-0
-        this.executeMove( 0, 3, 0);
+        this.executeMove(28, 4, 2, 0);//...0-0-0
+        this.executeMove(24, 0, 3, 0);
         break;
       case 3:
-        this.executeMove( 4, 6, 0);//...0-0
-        this.executeMove( 7, 5, 0);
+        this.executeMove(28, 4, 6, 0);//...0-0
+        this.executeMove(31, 7, 5, 0);
         break;
       default:
         throw 'castle bug';
     }
   }
 
-  executeMove(start, final, type){//does not check if move is legal
+  executeMove(p, start, final, type){//does not check if move is legal
     const board = this.state.squares.slice();
     const colors = this.state.colors;
     const castle = this.state.canCastle.slice();
     const pieces = this.state.pieces.slice();
 
+
     if (board[final] !== null){
       pieces[this.state.pieces.indexOf(final)] = -1;//piece is captured.
     }
-    if (type < 2){
+
+
+    pieces[p] = final;
+    board[final] = board[start];
+    board[start] = null;
+    colors[final] = colors[start];
+    colors[start] = null;
+    if (type < 3){
       castle[0] &= (start !== 56) && (start !== 60);//left white rook moved or white king moved
       castle[1] &= (start !== 63) && (start !== 60);//right white rook moved or white king moved
       castle[2] &= (start !==  0) && (start !==  4);//left black rook moved or black king moved
       castle[3] &= (start !==  7) && (start !==  4);//right white rook moved or black king moved
-
-      board[final] = board[start];
-      board[start] = null;
-      colors[final] = colors[start];
-      colors[start] = null;
-    } else {//en passant
-      board[final] = board[start];
-      board[start] = null;
-      colors[final] = colors[start];
-      colors[start] = null;
-      let direction = (final - start) % 8;
-      //no mailbox check because generateMoves already checked
+      if (type < 0) this.setState({enPassant: -type});
+    } else {//en passant capture
+      this.setState({enPassant: -1});
+      const direction = ((start - final) % 8 === 7) ? 1 : -1;
+      console.log(direction);
+      pieces[this.state.pieces.indexOf(start + direction)] = -1;
       board[start + direction] = null;
       colors[start + direction] = null;
     }
@@ -217,26 +221,25 @@ class Board extends React.Component {
   }
 
   generateMoves(p){
-    const board = this.state.squares.slice();
-    const colors = this.state.colors.slice();
-    const enemy = this.state.bNext? 1 : 0;
+    const board = this.state.squares;
+    const colors = this.state.colors;
+    const enemy = this.state.bNext? 0 : 1;
     const i = this.state.pieces[p];
     let moves = [];
     if (colors[i] !== enemy && board[i] !== null){
       const pieceID = board[i];
       const piece = data[pieceID];
-      if (piece === undefined) return [];
       if (pieceID !== '\u2659' && pieceID !== '\u265f'){//non-pawns
-        piece.offset.forEach(element => {
+        piece.offset.forEach((element, index) => {
           for (let n = i;;){
             n = mailbox[mailbox64[n] + element];
             if (n === -1) break; /* outside board */
             if (colors[n] !== null) {
               if (colors[n] === enemy)
-                moves.push([i, n, 1]); /* capture from i to n */
+                moves.push([p, i, n, 2]); /* capture from i to n */
               break;
             }
-            moves.push([i, n, 0]); /* quiet move from i to n */
+            moves.push([p, i, n, 1]); /* quiet move from i to n */
             if (!piece.slide) break; /* next direction */
           }
         });
@@ -244,21 +247,20 @@ class Board extends React.Component {
         piece.offset.capture.forEach((element, index) => {//capturing diagonally forward
           let n = i;
           n = mailbox[mailbox64[n] + element];
-          if (n !== -1 && colors[n] === enemy) moves.push([i, n, 1]);
+          if (n !== -1 && colors[n] === enemy) moves.push([p, i, n, 2]);
           else if (this.state.enPassant === n) {
-            moves.push([i, n, 2]);;
+            moves.push([p, i, n, 3]);;
           }
         });
         let n = mailbox[mailbox64[i] + piece.offset.move];//moving forward
         if (colors[n] === null){
-          moves.push([i, n, 0]);
-          if ( (n <= 15 && n >= 8 && colors[i] === 1)
-            || (n <= 55 && n >= 48 && colors[i] === 0))
+          moves.push([p, i, n, 1]);
+          if ( (n <= 23 && n >= 16 && colors[i] === 0)
+            || (n <= 47 && n >= 40 && colors[i] === 1))
           {//if the piece could land on the 3rd/6th rank, it must have started from the origin
             let m = mailbox[mailbox64[n] + piece.offset.move];
             if (colors[m] === null) {
-              moves.push([i, n, 0]);
-              this.setState({enPassant: n});
+              moves.push([p, i, m, -n]);//type carries information required for en passant
             }
           }
         }
@@ -274,12 +276,12 @@ class Board extends React.Component {
        || selected === i //clicked the same square
        || squares[selected] === null //clicked an empty square
        || this.state.legals[i] === 0 //clicked an illegal square
-       || this.state.colors[i] === (this.state.bNext ? 0 : 1) //clicked an enemy piece
        ) {
       this.updateLegals(i);
       this.setState({selected: i});
     } else {
-      this.executeMove(selected, i, 0);
+      const p = this.state.pieces.indexOf(selected);
+      this.executeMove(p, selected, i, this.state.legals[i]);
       this.switchPlayer();
     }
   }
@@ -290,7 +292,6 @@ class Board extends React.Component {
       idX={i%8}
       idY={i>>3}
       selected={(this.state.selected===i)? true : false}
-      legal={(this.state.legals[i]===1)? true : false}
       value={this.state.squares[[i]]}
       onClick={() => this.handleClick(i)}
     />
