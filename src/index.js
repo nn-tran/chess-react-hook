@@ -45,12 +45,12 @@ const data = {
     '\u265a':{ slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
 };
 
-
 function Square(props) {
   return (
     <button
       className = {(props.idX + props.idY ) %2 === 0 ? "square" : "squareBlack"}
       onClick = {props.onClick}
+      style={{backgroundColor: props.color}}
     >
       {props.value}
     </button>
@@ -69,7 +69,7 @@ class Board extends React.Component {
                 8,  9, 10, 11, 12, 13, 14, 15,
                 0,  1,  2,  3,  4,  5,  6,  7],//black
 
-      legals: Array(64).fill(-1),
+      legals: Array(64).fill(0),
       kingSafe: Array(64).fill(0),//0: neither safe, 1: white king safe, 2: black king safe, 3: both kings safe
       canCastle: Array(4).fill(1),//white-long, white-short, black-long, black-short
       enPassant: -1,
@@ -153,9 +153,6 @@ class Board extends React.Component {
       });
     }
     this.setState({legals: legals});
-
-    //console.clear();
-    //console.log(legals);
   }
 
   castle(direction){
@@ -196,17 +193,16 @@ class Board extends React.Component {
     board[start] = null;
     colors[final] = colors[start];
     colors[start] = null;
+    if (type < 0) this.setState({enPassant: -type});
+    else this.setState({enPassant: -1});
     if (type < 3){
       castle[0] &= (start !== 56) && (start !== 60);//left white rook moved or white king moved
       castle[1] &= (start !== 63) && (start !== 60);//right white rook moved or white king moved
       castle[2] &= (start !==  0) && (start !==  4);//left black rook moved or black king moved
       castle[3] &= (start !==  7) && (start !==  4);//right white rook moved or black king moved
-      if (type < 0) this.setState({enPassant: -type});
+
     } else {//en passant capture
-      this.setState({enPassant: -1});
-      const direction = (start - final) < 0 ? (final - start - 8) : (final - start + 8);
-      console.log(direction);
-      console.log(start-final);
+      const direction = (final - start) > 0 ? (final - start - 8) : (final - start + 8);
       pieces[this.state.pieces.indexOf(start + direction)] = -1;
       board[start + direction] = null;
       colors[start + direction] = null;
@@ -247,8 +243,8 @@ class Board extends React.Component {
           let n = i;
           n = mailbox[mailbox64[n] + element];
           if (n !== -1 && colors[n] === enemy) moves.push([p, i, n, 2]);
-          else if (this.state.enPassant === n) {
-            moves.push([p, i, n, 3]);;
+          else if (this.state.enPassant === n) {//captures en passant
+            moves.push([p, i, n, 3]);
           }
         });
         let n = mailbox[mailbox64[i] + piece.offset.move];//moving forward
@@ -282,6 +278,7 @@ class Board extends React.Component {
       const p = this.state.pieces.indexOf(selected);
       this.executeMove(p, selected, i, this.state.legals[i]);
       this.switchPlayer();
+      this.setState({legals: Array(64).fill(0)});
     }
   }
 
@@ -291,7 +288,8 @@ class Board extends React.Component {
       idX={i%8}
       idY={i>>3}
       selected={(this.state.selected===i)? true : false}
-      value={this.state.squares[[i]]}
+      value={this.state.squares[i]}
+      color={this.state.legals[i] === 0 ? "" : "yellow"}
       onClick={() => this.handleClick(i)}
     />
     );
