@@ -187,11 +187,9 @@ class Board extends React.Component {
     const castle = this.state.canCastle.slice();
     const pieces = this.state.pieces.slice();
 
-
     if (board[final] !== null){
       pieces[this.state.pieces.indexOf(final)] = -1;//piece is captured.
     }
-
 
     pieces[p] = final;
     board[final] = board[start];
@@ -206,8 +204,9 @@ class Board extends React.Component {
       if (type < 0) this.setState({enPassant: -type});
     } else {//en passant capture
       this.setState({enPassant: -1});
-      const direction = ((start - final) % 8 === 7) ? 1 : -1;
+      const direction = (start - final) < 0 ? (final - start - 8) : (final - start + 8);
       console.log(direction);
+      console.log(start-final);
       pieces[this.state.pieces.indexOf(start + direction)] = -1;
       board[start + direction] = null;
       colors[start + direction] = null;
