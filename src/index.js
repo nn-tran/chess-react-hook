@@ -30,20 +30,20 @@ const mailbox64 = [
 ];
 
 const data = {
-    '\u2659':{ offset: {capture: [ -9, -11 ], move: -10, enPassant: [-1,1]}}, /* PAWN */
-    '\u2658':{ slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */ },
-	'\u2657':{ slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */ },
-	'\u2656':{ slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */ },
-	'\u2655':{ slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */ },
-	'\u2654':{ slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */ },
+    '\u2659':{ color: 1, name:  "", slide: false, offset: [ -9, -11 ], move: -10}, /* PAWN */
+    '\u2658':{ color: 1, name: "N", slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */ },
+	'\u2657':{ color: 1, name: "B", slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */ },
+	'\u2656':{ color: 1, name: "R", slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */ },
+	'\u2655':{ color: 1, name: "Q", slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */ },
+	'\u2654':{ color: 1, name: "K", slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */ },
 
     //black pieces
-    '\u265f':{ offset: {capture: [ 9, 11 ], move: 10, enPassant: [-1,1]}}, /* PAWN */
-    '\u265e':{ slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */},
-    '\u265d':{ slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */},
-    '\u265c':{ slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */},
-    '\u265b':{ slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */},
-    '\u265a':{ slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
+    '\u265f':{ color: 2, name:  "", slide: false, offset: [ 9, 11 ], move: 10}, /* PAWN */
+    '\u265e':{ color: 2, name: "N", slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */},
+    '\u265d':{ color: 2, name: "B", slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */},
+    '\u265c':{ color: 2, name: "R", slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */},
+    '\u265b':{ color: 2, name: "Q", slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */},
+    '\u265a':{ color: 2, name: "K", slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
 };
 
 function Square(props) {
@@ -71,8 +71,8 @@ class Board extends React.Component {
                 0,  1,  2,  3,  4,  5,  6,  7],//black
 
       legals: Array(64).fill(0),
-      kingSafe: Array(64).fill(0),//0: neither safe, 1: white king safe, 2: black king safe, 3: both kings safe
       canCastle: Array(4).fill(1),//white-long, white-short, black-long, black-short
+      history: [],
       enPassant: -1,
       selected: -1,
       bNext: true,
@@ -104,46 +104,32 @@ class Board extends React.Component {
     board[7] = '\u265c';
     for (let i = 0; i < 8; ++i){
       board[i+8] = '\u265f';
-      this.state.colors[i+8] = 0;
-      this.state.colors[i] = 0;
+      this.state.colors[i+8] = 2;
+      this.state.colors[i] = 2;
     }
   }
 
+  //legal wrapper for executeMove()
   //move is [piece, start, final, type]
   moveLegal(move){
-    const old = this.state.board.slice();
-    this.executeMove(move);
-    if ((this.state.kingSafe[this.state.pieces[12]] & 1)//white king safe
-      &&(this.state.kingSafe[this.state.pieces[28]] & 2)){//black king safe
-        return;
-      }
-    this.setState({
-      squares: old
-    });
-  }
+    const board = this.state.squares.slice();
+    const colors = this.state.colors.slice();
+    const castle = this.state.canCastle.slice();
+    const pieces = this.state.pieces.slice();
 
-  //king safety map
-  //used to determine an illegal board position
-  generateDeathMap(){
-    const kingSafe = Array(64).fill(0);
-    const bMoves = [];
-    const wMoves = [];
-    for (let j = 0; j < 16; ++j){
-      if (this.state.pieces[j] < 0) continue;
-      wMoves.concat(this.generateMoves(j));
-    }
-    wMoves.forEach((element) => {//an element is a move, i.e. [piece, start, final, type]
-      kingSafe[element[2]] |= 2;//all white-accessible squares are dangerous for the black king
-    });
-    this.switchPlayer();
-    for (let j = 16; j < 32; ++j){
-      if (this.state.pieces[j] < 0) continue;
-      bMoves.concat(this.generateMoves(j));
-    }
-    bMoves.forEach((element) => {
-      kingSafe[element[2]] |= 1;
-    });
-    this.setState({kingSafe: kingSafe});
+    this.executeMove(move);
+    if (((this.inDanger(this.state.pieces[12]) & 2) && this.state.nNext)//white king in danger
+       || ((this.inDanger(this.state.pieces[28]) & 1) && !this.state.nNext)){//black king in danger
+        console.log("moved?");
+        this.switchPlayer();
+        this.setState((state) => ({
+          squares: board,
+          colors: colors,
+          pieces: pieces,
+          canCastle: castle,
+          }));
+      }
+
   }
 
   switchPlayer(){
@@ -156,24 +142,20 @@ class Board extends React.Component {
     let legals = Array(64).fill(0);
     if (p>=0) {
       const moves = this.generateMoves(p);
-      moves.forEach((element) => {
-        legals[element[2]] = element[3];
-      });
+      for (const move of moves) {
+        legals[move[2]] = move[3];
+      }
     }
     this.setState({legals: legals});
-    console.log(legals);
+    //console.log(legals);
   }
 
   //does not check if move is legal
   executeMove(p, start, final, type){
-
     const board = this.state.squares.slice();
     const colors = this.state.colors;
     const castle = this.state.canCastle.slice();
     const pieces = this.state.pieces.slice();
-
-
-    //console.log(this.state.pieces[p] + " " + start + " " + final + " " + type);
 
     if (board[final] !== null){
       pieces[this.state.pieces.indexOf(final)] = -1;//piece is captured.
@@ -232,58 +214,57 @@ class Board extends React.Component {
           board[7] = null;
           colors[7] = null;
           break;
-        default:
-          throw 'castle bug';
+        default://do nothing
       }
     }
-    this.setState({
+    //updater to guarantee order to make generateDeathMap() work
+    this.setState((state) => ({
       squares: board,
       colors: colors,
       pieces: pieces,
       canCastle: castle,
-    });
+    }));
   }
 
   //generates pseudo-legal moves (moves that the pieces could make, but not necessarily results in a legal position)
   generateMoves(p){
     const board = this.state.squares;
     const colors = this.state.colors;
-    const enemy = this.state.bNext? 0 : 1;
+    const enemy = this.state.bNext ? 2 : 1;
     const i = this.state.pieces[p];
     let moves = [];
     if (colors[i] !== enemy && board[i] !== null){
       const pieceID = board[i];
       const piece = data[pieceID];
-      if (pieceID !== '\u2659' && pieceID !== '\u265f'){//non-pawns
-        piece.offset.forEach((element, index) => {
+      if (piece.name){//non-pawns
+        for (const offset of piece.offset){
           for (let n = i;;){
-            n = mailbox[mailbox64[n] + element];
+            n = mailbox[mailbox64[n] + offset];
             if (n === -1) break; /* outside board */
             if (colors[n] !== null) {
-              if (colors[n] === enemy)
-                moves.push([p, i, n, 2]); /* capture from i to n */
+              if (colors[n] === enemy) moves.push([p, i, n, 2]); /* capture from i to n */
               break;
             }
             moves.push([p, i, n, 1]); /* quiet move from i to n */
             if (!piece.slide) break; /* next direction */
           }
-        });
+        }
       } else {//pawns have custom behaviour
-        piece.offset.capture.forEach((element, index) => {//capturing diagonally forward
+        for (const offset of piece.offset){//capturing diagonally forward
           let n = i;
-          n = mailbox[mailbox64[n] + element];
+          n = mailbox[mailbox64[n] + offset];
           if (n !== -1 && colors[n] === enemy) moves.push([p, i, n, 2]);
-          else if (this.state.enPassant === n) {//captures en passant
+          else if (n !== -1 && this.state.enPassant === n) {//captures en passant
             moves.push([p, i, n, 3]);
           }
-        });
-        let n = mailbox[mailbox64[i] + piece.offset.move];//moving forward
+        }
+        const n = mailbox[mailbox64[i] + piece.move];//moving forward
         if (colors[n] === null){
           moves.push([p, i, n, 1]);
-          if ( (n <= 23 && n >= 16 && colors[i] === 0)
+          if ( (n <= 23 && n >= 16 && colors[i] === 2)
             || (n <= 47 && n >= 40 && colors[i] === 1))
           {//if the piece could land on the 3rd/6th rank, it must have started from the origin
-            let m = mailbox[mailbox64[n] + piece.offset.move];
+            const m = mailbox[mailbox64[n] + piece.move];
             if (colors[m] === null) {
               moves.push([p, i, m, -n]);//type carries information required for en passant
             }
@@ -307,6 +288,32 @@ class Board extends React.Component {
     return moves;
   }
 
+  //check if square is being attacked
+  //0 is not attacked
+  //1 is attacked by white
+  //2 is attacked by black
+  //3 is attacked by both
+  inDanger(i){
+    const board = this.state.squares;
+    let result = 0;
+    for (const [pieceID, piece] of Object.entries(data)){
+      for (const offset of piece.offset){
+        //if a piece of the same color can already capture square i, skip this piece
+        if (piece.color & result) continue;
+        for (let n = i;;){
+          n = mailbox[mailbox64[n] - offset];//reversed offset for calculating backwards, only relevant for pawns
+          if (n === -1) break; /* outside board */
+          if (board[n] === pieceID){
+            result |= piece.color;
+            break;
+          } else if (board[n]) break;//ray cast stops when a piece is found
+          if (!piece.slide) break; /* next direction */
+        }
+      }
+    }
+    return result;
+  }
+
   handleClick(i){
     const squares = this.state.squares.slice();
     const selected = this.state.selected;
@@ -316,13 +323,13 @@ class Board extends React.Component {
        || this.state.legals[i] === 0 //clicked an illegal square
        ) {
       this.updateLegals(i);
+      this.inDanger(i);
       this.setState({selected: i});
     } else {
       const p = this.state.pieces.indexOf(selected);
-      this.executeMove(p, selected, i, this.state.legals[i]);
-      console.log(this.state.squares);
+      this.moveLegal(p, selected, i, this.state.legals[i]);
       this.switchPlayer();
-      this.setState({legals: Array(64).fill(0)});
+      this.setState({legals: Array(64).fill(0), selected: -1});
     }
   }
 
@@ -340,11 +347,12 @@ class Board extends React.Component {
   }
 
   render() {
-    const status = 'Next player: ' + (this.state.bNext ? 'White' : 'Black')
-      + '\nSelected: ' + this.state.selected;
+    const player = 'Next player: ' + (this.state.bNext ? 'White' : 'Black');
+    const status = '\nSelected: ' + this.state.selected;
     let counter = 0;
     return (
       <div>
+        <div className="status">{player}</div>
         <div className="status">{status}</div>
         <div className="board-row">
           {this.renderSquare(counter++)}
