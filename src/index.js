@@ -86,7 +86,8 @@ class Board extends React.Component {
       enPassant: -1,
       selected: -1,
       bNext: true,
-      promote: 0,
+      promoting: -1,
+      promote: null,
       gameOver: false,
     };
 
@@ -205,7 +206,7 @@ class Board extends React.Component {
         default://do nothing
       }
     } else {//promotion
-      board[final] = this.promote(final);
+      this.setState({promoting: final});
     }
     return {
       squares: board,
@@ -214,15 +215,6 @@ class Board extends React.Component {
       canCastle: castle,
       enPassant: enPassant,
     };
-  }
-
-  //promote piece at target square
-  promote(target){
-    if (target < 8) {//white pawn promoting
-      
-    } else {//black pawn promoting
-
-    }
   }
 
   //generates pseudo-legal moves (moves that the pieces could make, but not necessarily results in a legal position)
@@ -254,9 +246,8 @@ class Board extends React.Component {
         if (n !== -1 && colors[n] === enemy){
           if ( (n <= 7 && n >= 0) || (n <= 63 && n >= 56))
           {//pawns reaching last rank must promote
-            moves.push([p, i, n, 8]);
-          }
-          moves.push([p, i, n, 2]);
+            moves.push([p, i, n, 9]);
+          } else moves.push([p, i, n, 2]);
         }
         else if (n !== -1 && this.state.enPassant === n) {//captures en passant
           moves.push([p, i, n, 3]);
@@ -318,7 +309,10 @@ class Board extends React.Component {
           && !(this.inDanger(5, this.state) & 1)
           && !(this.inDanger(6, this.state) & 1);
       }
-      const position = this.executeMove(...move);
+      let position;
+      //promoting is treated as the regular move
+      if (move[3] >= 8) position = this.executeMove(move[0], move[1], move[2], move[3]-7);
+      else position = this.executeMove(...move);
       const bNext = this.state.bNext;
       const wKing = position.pieces[12];
       const bKing = position.pieces[28];
@@ -356,6 +350,7 @@ class Board extends React.Component {
 
   //just handle clicking a square
   handleClick(i){
+    if (this.state.promoting >= 0) return;//promoting, board locked
     const squares = this.state.squares.slice();
     const selected = this.state.selected;
     if (selected === -1 //haven't clicked
@@ -380,11 +375,12 @@ class Board extends React.Component {
     }
   }
 
-  handleClickPromote(){}
+
 
   renderSquare(i) {
     const legal = !(this.state.legals[i] === 0);
     let color = '';
+    if (this.state.selected === i) color = "#2f2";
     if ( ((i&7)+(i>>3)) % 2 === 1){
       if (this.state.selected !== i) color = "#7d8796";
       else color = "#0d0";
@@ -401,8 +397,20 @@ class Board extends React.Component {
     );
   }
 
+  handleClickPromote(i){
+    const promoting = this.state.promoting;
+    const board = this.state.squares;
+    board[promoting] = i;
+    this.setState({
+      promoting: -1,
+      promote: i,
+      squares: board,
+    });
+  }
+
   renderPromoteSquare(i){
-    //if (!this.state.promote) return null;
+    if (this.state.promoting < 0) return null;
+    if ((data[i].color === 2) !== this.state.bNext) return null;
     return (
     <Square
       key={i}
@@ -445,7 +453,10 @@ class Board extends React.Component {
     promotePieces.push(this.renderPromoteSquare('\u2658'));
     promotePieces.push(this.renderPromoteSquare('\u2656'));
     promotePieces.push(this.renderPromoteSquare('\u2657'));
-
+    promotePieces.push(this.renderPromoteSquare('\u265b'));
+    promotePieces.push(this.renderPromoteSquare('\u265e'));
+    promotePieces.push(this.renderPromoteSquare('\u265c'));
+    promotePieces.push(this.renderPromoteSquare('\u265d'));
 
     return (
       <div>

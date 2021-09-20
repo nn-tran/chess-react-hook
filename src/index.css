@@ -48,11 +48,6 @@ ol, ul {
   width: 34px;
 }
 
-.square:focus {
-  background: #2f2;
-}
-
-
 .kbd-navigation .square:focus {
   background: #ddd;
 }
