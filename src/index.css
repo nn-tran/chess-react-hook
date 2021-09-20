@@ -17,42 +17,39 @@ ol, ul {
   margin-bottom: 10px;
 }
 
-.square {
+.read-only-square {
   background: #fff;
-  border: 1px solid #999;
+  border: 0px solid #fff;
+  float: left;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 34px;
+  margin-right: 0px;
+  margin-top: 0px;
+  padding: 0;
+  text-align: center;
+  width: 34px;
+}
+
+
+.square {
+  background: #e8ebef;
+  border: 0px solid #000;
   float: left;
   font-size: 24px;
   font-weight: bold;
   line-height: 34px;
   height: 34px;
-  margin-right: -1px;
-  margin-top: -1px;
+  margin-right: 0px;
+  margin-top: 0px;
   padding: 0;
   text-align: center;
   width: 34px;
 }
 
 .square:focus {
-  background: #0f0;
-}
-
-.squareBlack {
-  background: #999;
-  border: 1px solid #999;
-  float: left;
-  font-size: 24px;
-  font-weight: bold;
-  line-height: 34px;
-  height: 34px;
-  margin-right: -1px;
-  margin-top: -1px;
-  padding: 0;
-  text-align: center;
-  width: 34px;
-}
-
-.squareBlack:focus {
-  background: #0f0;
+  background: #2f2;
 }
 
 

@@ -49,9 +49,19 @@ const data = {
 function Square(props) {
   return (
     <button
-      className = {(props.idX + props.idY ) %2 === 0 ? "square" : "squareBlack"}
+      className = {"square"}
       onClick = {props.onClick}
       style={{backgroundColor: props.color}}
+    >
+      {props.value}
+    </button>
+  );
+}
+
+function ReadOnlySquare(props) {
+  return (
+    <button
+      className = "read-only-square"
     >
       {props.value}
     </button>
@@ -76,6 +86,8 @@ class Board extends React.Component {
       enPassant: -1,
       selected: -1,
       bNext: true,
+      promote: 0,
+      gameOver: false,
     };
 
     const board = this.state.squares;
@@ -115,7 +127,6 @@ class Board extends React.Component {
     let legals = Array(64).fill(0);
     if (p>=0) {
       const moves = this.trimMoves(this.generateMoves(p));
-      console.log(moves);
       for (const move of moves) {
         legals[move[2]] = move[3];
       }
@@ -129,7 +140,7 @@ class Board extends React.Component {
   executeMove(p, start, final, type){
     const board = this.state.squares.slice();
     const colors = this.state.colors.slice();
-    const castle = this.state.canCastle.valueOf();
+    const castle = this.state.canCastle.slice();
     const pieces = this.state.pieces.slice();
     let enPassant = -1;
 
@@ -156,9 +167,8 @@ class Board extends React.Component {
       pieces[this.state.pieces.indexOf(start + direction)] = -1;
       board[start + direction] = null;
       colors[start + direction] = null;
-    } else {//castling, hard coded
+    } else if (type < 8) {//castling, hard coded
       castle[type-4] = 0;//disable the type we just did
-
       switch(type){
         case 4://0-0-0
           castle[1] = 0;//disable the other way of castling (can't castle long after castling short, and vice versa)
@@ -194,6 +204,8 @@ class Board extends React.Component {
           break;
         default://do nothing
       }
+    } else {//promotion
+      board[final] = this.promote(final);
     }
     return {
       squares: board,
@@ -202,6 +214,15 @@ class Board extends React.Component {
       canCastle: castle,
       enPassant: enPassant,
     };
+  }
+
+  //promote piece at target square
+  promote(target){
+    if (target < 8) {//white pawn promoting
+      
+    } else {//black pawn promoting
+
+    }
   }
 
   //generates pseudo-legal moves (moves that the pieces could make, but not necessarily results in a legal position)
@@ -230,20 +251,31 @@ class Board extends React.Component {
       for (const offset of piece.offset){//capturing diagonally forward
         let n = i;
         n = mailbox[mailbox64[n] + offset];
-        if (n !== -1 && colors[n] === enemy) moves.push([p, i, n, 2]);
+        if (n !== -1 && colors[n] === enemy){
+          if ( (n <= 7 && n >= 0) || (n <= 63 && n >= 56))
+          {//pawns reaching last rank must promote
+            moves.push([p, i, n, 8]);
+          }
+          moves.push([p, i, n, 2]);
+        }
         else if (n !== -1 && this.state.enPassant === n) {//captures en passant
           moves.push([p, i, n, 3]);
         }
       }
       const n = mailbox[mailbox64[i] + piece.move];//moving forward
       if (colors[n] === null){
-        moves.push([p, i, n, 1]);
-        if ( (n <= 23 && n >= 16 && colors[i] === 2)
-          || (n <= 47 && n >= 40 && colors[i] === 1))
-        {//if the piece could land on the 3rd/6th rank, it must have started from the origin
-          const m = mailbox[mailbox64[n] + piece.move];
-          if (colors[m] === null) {
-            moves.push([p, i, m, -n]);//type carries information required for en passant
+        if ( (n <= 7 && n >= 0) || (n <= 63 && n >= 56))
+        {//pawns reaching last rank must promote
+          moves.push([p, i, n, 8]);
+        } else {
+          moves.push([p, i, n, 1]);
+          if ( (n <= 23 && n >= 16 && colors[i] === 2)
+            || (n <= 47 && n >= 40 && colors[i] === 1))
+          {//if the piece could land on the 3rd/6th rank, it must have started from the origin
+            const m = mailbox[mailbox64[n] + piece.move];
+            if (colors[m] === null) {
+              moves.push([p, i, m, -n]);//type carries information required for en passant
+            }
           }
         }
       }
@@ -269,15 +301,30 @@ class Board extends React.Component {
   trimMoves(moves){
     return moves.filter(move => {
       if ((move[0] < 16) !== this.state.bNext) return false;
+      if (move[3] === 4){
+        return !(this.inDanger(60, this.state) & 2)
+          && !(this.inDanger(59, this.state) & 2)
+          && !(this.inDanger(58, this.state) & 2);
+      } else if (move[3] === 5){
+        return !(this.inDanger(60, this.state) & 2)
+          && !(this.inDanger(61, this.state) & 2)
+          && !(this.inDanger(62, this.state) & 2);
+      } else if (move[3] === 6){
+        return !(this.inDanger(4, this.state) & 1)
+          && !(this.inDanger(3, this.state) & 1)
+          && !(this.inDanger(2, this.state) & 1);
+      } else if (move[3] === 7){
+        return !(this.inDanger(4, this.state) & 1)
+          && !(this.inDanger(5, this.state) & 1)
+          && !(this.inDanger(6, this.state) & 1);
+      }
       const position = this.executeMove(...move);
       const bNext = this.state.bNext;
       const wKing = position.pieces[12];
       const bKing = position.pieces[28];
-      console.log(wKing + " " + this.inDanger(wKing, position));
-      console.log(bKing + " " + this.inDanger(bKing, position));
       if (this.inDanger(wKing, position) & 2 && bNext) return false;
       else if (this.inDanger(bKing, position) & 1 && !bNext) return false;
-      return true;
+      else return true;
     });
   }
 
@@ -307,6 +354,7 @@ class Board extends React.Component {
     return result;
   }
 
+  //just handle clicking a square
   handleClick(i){
     const squares = this.state.squares.slice();
     const selected = this.state.selected;
@@ -319,7 +367,7 @@ class Board extends React.Component {
       this.setState({selected: i});
     } else {
       const p = this.state.pieces.indexOf(selected);
-      const position = this.executeMove(p, selected, i, this.state.legals[i]);
+      const position = this.executeMove(p, selected, i, this.state.legals[i]);//move from selected to current square
       this.setState({
         squares: position.squares,
         colors: position.colors,
@@ -332,15 +380,34 @@ class Board extends React.Component {
     }
   }
 
+  handleClickPromote(){}
+
   renderSquare(i) {
+    const legal = !(this.state.legals[i] === 0);
+    let color = '';
+    if ( ((i&7)+(i>>3)) % 2 === 1){
+      if (this.state.selected !== i) color = "#7d8796";
+      else color = "#0d0";
+      if (legal) color = "#bbbb00";
+    } else if (legal) color = "#ffff00";
     return (
     <Square
-      idX={i%8}
-      idY={i>>3}
+      key={i}
       selected={this.state.selected === i ? true : false}
       value={this.state.squares[i]}
-      color={this.state.legals[i] === 0 ? '' : 'yellow'}
+      color={color}
       onClick={() => this.handleClick(i)}
+    />
+    );
+  }
+
+  renderPromoteSquare(i){
+    //if (!this.state.promote) return null;
+    return (
+    <Square
+      key={i}
+      value={i}
+      onClick={() => this.handleClickPromote(i)}
     />
     );
   }
@@ -348,96 +415,51 @@ class Board extends React.Component {
   render() {
     const player = 'Next player: ' + (this.state.bNext ? 'White' : 'Black');
     const status = '\nSelected: ' + this.state.selected;
-    let counter = 0;
+    const squares = [];
+    for (let i = 0; i < 8; i++){
+      const row = [];
+      for (let j = 0; j < 8; j++){
+        row.push(this.renderSquare(i*8+j));
+      }
+      const div = <div className="board-row" key={8-i}>
+                    <ReadOnlySquare value = {8-i} color = {'white'}/>
+                    {row}
+                    <ReadOnlySquare value = {8-i} color = {'white'}/>
+                  </div>;
+      squares.push(div);
+    }
+    const columnChars = " abcdefgh\t";
+    const columns = [];
+    for (const c of columnChars){
+      const cSquare = <ReadOnlySquare value = {c} color = {'white'} key = {c}/>;
+      columns.push(cSquare);
+    }
+
+    const promotePieces = [];
+    for (let i = 0; i < 3; ++i){
+      const align = <ReadOnlySquare value = {' '} color = {'white'} key = {i}/>;
+      promotePieces.push(align);
+    }
+    //promotion order is from most to least common
+    promotePieces.push(this.renderPromoteSquare('\u2655'));
+    promotePieces.push(this.renderPromoteSquare('\u2658'));
+    promotePieces.push(this.renderPromoteSquare('\u2656'));
+    promotePieces.push(this.renderPromoteSquare('\u2657'));
+
+
     return (
       <div>
         <div className="status">{player}</div>
         <div className="status">{status}</div>
-        <div className="board-row">
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-        </div>
-        <div className="board-row">
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-          {this.renderSquare(counter++)}
-        </div>
+        <div>{columns}</div>
+        {squares}
+        <div>{columns}</div>
+        {promotePieces}
       </div>
-
     );
   }
 }
+
 
 class Game extends React.Component {
   render() {
