@@ -49,7 +49,7 @@ const data = {
 function Square(props) {
   return (
     <button
-      className = {"square"}
+      className = "square"
       onClick = {props.onClick}
       style={{backgroundColor: props.color}}
     >
@@ -61,7 +61,7 @@ function Square(props) {
 function ReadOnlySquare(props) {
   return (
     <button
-      className = {"square"}
+      className = "square"
       style = {{backgroundColor: "#fff", fontSize: "12px"}}
     >
       {props.value}
@@ -135,6 +135,16 @@ class Board extends React.Component {
     }
     this.setState({legals: legals});
     //console.log(legals);
+  }
+
+  countAllLegals(){
+    let l = 0;
+    for (let i = 0; i < 32; ++i){
+      l += this.trimMoves(this.generateMoves(i)).length;
+    }
+    console.log(l);
+    if (l === 0) this.setState({gameOver: true});
+    return l;
   }
 
   //does not check if move is legal
@@ -220,11 +230,12 @@ class Board extends React.Component {
 
   //generates pseudo-legal moves (moves that the pieces could make, but not necessarily results in a legal position)
   generateMoves(p){
+    const i = this.state.pieces[p];
+    let moves = [];
+    if (i===-1) return moves;
     const board = this.state.squares;
     const colors = this.state.colors;
-    const i = this.state.pieces[p];
     const enemy = colors[i] === 1 ? 2 : 1;
-    let moves = [];
     const pieceID = board[i];
     const piece = data[pieceID];
     if (piece.name){//non-pawns
@@ -352,6 +363,7 @@ class Board extends React.Component {
   //just handle clicking a square
   handleClick(i){
     if (this.state.promoting >= 0) return;//promoting, board locked
+    if (this.state.gameOver) return;
     const squares = this.state.squares.slice();
     const selected = this.state.selected;
     if (selected === -1 //haven't clicked
@@ -365,6 +377,7 @@ class Board extends React.Component {
       const p = this.state.pieces.indexOf(selected);
       const position = this.executeMove(p, selected, i, this.state.legals[i]);//move from selected to current square
       this.setState({
+        selected: -1,
         squares: position.squares,
         colors: position.colors,
         pieces: position.pieces,
@@ -372,17 +385,27 @@ class Board extends React.Component {
         enPassant: position.enPassant,
         legals: Array(64).fill(0),
         bNext:!this.state.bNext,
-      });
+      }, this.countAllLegals);
     }
   }
 
-
+  handleClickPromote(i){
+    const promoting = this.state.promoting;
+    const board = this.state.squares;
+    board[promoting] = i;
+    this.setState({
+      promoting: -1,
+      promote: i,
+      squares: board,
+    });
+  }
 
   renderSquare(i) {
     const legal = !(this.state.legals[i] === 0);
+    //processing for square color
     let color = '';
     if (this.state.selected === i) color = "#2f2";
-    if ( ((i&7)+(i>>3)) % 2 === 1){
+    if ( ((i&7)+(i>>3)) % 2 === 1){//checkerboard pattern
       if (this.state.selected !== i) color = "#7d8796";
       else color = "#0d0";
       if (legal) color = "#bbbb00";
@@ -399,20 +422,9 @@ class Board extends React.Component {
     );
   }
 
-  handleClickPromote(i){
-    const promoting = this.state.promoting;
-    const board = this.state.squares;
-    board[promoting] = i;
-    this.setState({
-      promoting: -1,
-      promote: i,
-      squares: board,
-    });
-  }
-
   renderPromoteSquare(i){
-    if (this.state.promoting < 0) return null;
-    if ((data[i].color === 2) !== this.state.bNext) return null;
+    if (this.state.promoting < 0) return null;//only visible for promotion
+    if ((data[i].color === 2) !== this.state.bNext) return null;//show the right color
     return (
     <td key={i}>
     <Square
@@ -425,18 +437,27 @@ class Board extends React.Component {
 
   render() {
     const player = 'Next player: ' + (this.state.bNext ? 'White' : 'Black');
-    const status = '\nSelected: ' + this.state.selected;
+    let gameOverStatus = null;
+    if (this.state.gameOver){
+      const bNext = this.state.bNext;
+      const wKing = this.state.pieces[12];
+      const bKing = this.state.pieces[28];
+      if (this.inDanger(wKing, this.state) & 2 && bNext) gameOverStatus = 'Black wins';
+      else if (this.inDanger(bKing, this.state) & 1 && !bNext) gameOverStatus = 'White wins';
+      else gameOverStatus = 'Stalemate';
+    }
     const squares = [];
     for (let i = 0; i < 8; i++){
       const row = [];
       for (let j = 0; j < 8; j++){
         row.push(this.renderSquare(i*8+j));
       }
-      const fullRow = <tr className="board-row" key={8-i}>
-                        <td><ReadOnlySquare value = {8-i} color = {'white'}/></td>
-                        {row}
-                        <td><ReadOnlySquare value = {8-i} color = {'white'}/></td>
-                      </tr>;
+      const fullRow =
+        <tr className="board-row" key={8-i}>
+          <td><ReadOnlySquare value = {8-i} color = {'white'}/></td>
+          {row}
+          <td><ReadOnlySquare value = {8-i} color = {'white'}/></td>
+        </tr>;
       squares.push(fullRow);
     }
     const columnChars = " abcdefgh\t";
@@ -452,10 +473,12 @@ class Board extends React.Component {
       promotePieces.push(align);
     }
     //promotion order is from most to least common
+    //white promoting
     promotePieces.push(this.renderPromoteSquare('\u2655'));
     promotePieces.push(this.renderPromoteSquare('\u2658'));
     promotePieces.push(this.renderPromoteSquare('\u2656'));
     promotePieces.push(this.renderPromoteSquare('\u2657'));
+    //black promoting
     promotePieces.push(this.renderPromoteSquare('\u265b'));
     promotePieces.push(this.renderPromoteSquare('\u265e'));
     promotePieces.push(this.renderPromoteSquare('\u265c'));
@@ -464,8 +487,10 @@ class Board extends React.Component {
     return (
       <div>
         <div className="status">{player}</div>
-        <div className="status">{status}</div>
-        <table className="board" style={{borderCollapse: "collapse"}}>
+        <table
+          className="board"
+          style={{borderCollapse: "collapse"}}
+        >
           <tbody>
             <tr>{columns}</tr>
             {squares}
@@ -473,6 +498,10 @@ class Board extends React.Component {
           </tbody>
         </table>
         {promotePieces}
+        <div className="gameOver">
+          <ReadOnlySquare value = {' '}/>
+          {gameOverStatus}
+        </div>
       </div>
     );
   }
