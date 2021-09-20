@@ -61,7 +61,8 @@ function Square(props) {
 function ReadOnlySquare(props) {
   return (
     <button
-      className = "read-only-square"
+      className = {"square"}
+      style = {{backgroundColor: "#fff", fontSize: "12px"}}
     >
       {props.value}
     </button>
@@ -387,13 +388,14 @@ class Board extends React.Component {
       if (legal) color = "#bbbb00";
     } else if (legal) color = "#ffff00";
     return (
+    <td key={i}>
     <Square
-      key={i}
       selected={this.state.selected === i ? true : false}
       value={this.state.squares[i]}
       color={color}
       onClick={() => this.handleClick(i)}
     />
+    </td>
     );
   }
 
@@ -412,11 +414,12 @@ class Board extends React.Component {
     if (this.state.promoting < 0) return null;
     if ((data[i].color === 2) !== this.state.bNext) return null;
     return (
+    <td key={i}>
     <Square
-      key={i}
       value={i}
       onClick={() => this.handleClickPromote(i)}
     />
+    </td>
     );
   }
 
@@ -429,23 +432,23 @@ class Board extends React.Component {
       for (let j = 0; j < 8; j++){
         row.push(this.renderSquare(i*8+j));
       }
-      const div = <div className="board-row" key={8-i}>
-                    <ReadOnlySquare value = {8-i} color = {'white'}/>
-                    {row}
-                    <ReadOnlySquare value = {8-i} color = {'white'}/>
-                  </div>;
-      squares.push(div);
+      const fullRow = <tr className="board-row" key={8-i}>
+                        <td><ReadOnlySquare value = {8-i} color = {'white'}/></td>
+                        {row}
+                        <td><ReadOnlySquare value = {8-i} color = {'white'}/></td>
+                      </tr>;
+      squares.push(fullRow);
     }
     const columnChars = " abcdefgh\t";
     const columns = [];
     for (const c of columnChars){
-      const cSquare = <ReadOnlySquare value = {c} color = {'white'} key = {c}/>;
+      const cSquare = <td key = {c}><ReadOnlySquare value = {c} color = {'white'} /></td>;
       columns.push(cSquare);
     }
 
     const promotePieces = [];
     for (let i = 0; i < 3; ++i){
-      const align = <ReadOnlySquare value = {' '} color = {'white'} key = {i}/>;
+      const align = <ReadOnlySquare value = {' '} key = {i}/>;
       promotePieces.push(align);
     }
     //promotion order is from most to least common
@@ -462,9 +465,13 @@ class Board extends React.Component {
       <div>
         <div className="status">{player}</div>
         <div className="status">{status}</div>
-        <div>{columns}</div>
-        {squares}
-        <div>{columns}</div>
+        <table className="board" style={{borderCollapse: "collapse"}}>
+          <tbody>
+            <tr>{columns}</tr>
+            {squares}
+            <tr>{columns}</tr>
+          </tbody>
+        </table>
         {promotePieces}
       </div>
     );
