@@ -31,20 +31,19 @@ const mailbox64 = [
 ];
 
 const data = {
-    '\u2659':{ color: 1, name:  '', slide: false, offset: [ -9, -11 ], move: -10}, /* PAWN */
-    '\u2658':{ color: 1, name: 'N', slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */ },
-	'\u2657':{ color: 1, name: 'B', slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */ },
-	'\u2656':{ color: 1, name: 'R', slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */ },
-	'\u2655':{ color: 1, name: 'Q', slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */ },
-	'\u2654':{ color: 1, name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */ },
-
+    '\u2659':{ color: 1, hash: 1, name:  '', slide: false, offset: [ -9, -11 ], move: -10}, /* PAWN */
+    '\u2658':{ color: 1, hash: 2, name: 'N', slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */ },
+	'\u2657':{ color: 1, hash: 3, name: 'B', slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */ },
+	'\u2656':{ color: 1, hash: 4, name: 'R', slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */ },
+	'\u2655':{ color: 1, hash: 5, name: 'Q', slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */ },
+	'\u2654':{ color: 1, hash: 6, name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */ },
     //black pieces
-    '\u265f':{ color: 2, name:  '', slide: false, offset: [ 9, 11 ], move: 10}, /* PAWN */
-    '\u265e':{ color: 2, name: 'N', slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */},
-    '\u265d':{ color: 2, name: 'B', slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */},
-    '\u265c':{ color: 2, name: 'R', slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */},
-    '\u265b':{ color: 2, name: 'Q', slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */},
-    '\u265a':{ color: 2, name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
+    '\u265f':{ color: 2, hash: 7, name:  '', slide: false, offset: [ 9, 11 ], move: 10}, /* PAWN */
+    '\u265e':{ color: 2, hash: 8, name: 'N', slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */},
+    '\u265d':{ color: 2, hash: 9, name: 'B', slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */},
+    '\u265c':{ color: 2, hash: 10,name: 'R', slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */},
+    '\u265b':{ color: 2, hash: 11,name: 'Q', slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */},
+    '\u265a':{ color: 2, hash: 12,name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
 };
 
 function Piece(props) {
@@ -130,6 +129,7 @@ class Board extends React.Component {
                 8,  9, 10, 11, 12, 13, 14, 15,
                 0,  1,  2,  3,  4,  5,  6,  7],//black
 
+      halfMoveClock: 0,
       legals: Array(64).fill(0),
       canCastle: Array(4).fill(1),//white-long, white-short, black-long, black-short
       history: [],
@@ -138,7 +138,7 @@ class Board extends React.Component {
       bNext: true,
       promoting: -1,
       promote: null,
-      gameOver: false,
+      gameOver: 0,
     };
 
     const board = this.state.squares;
@@ -186,14 +186,17 @@ class Board extends React.Component {
     //console.log(legals);
   }
 
-  countAllLegals(){
+  checkEndGame(){
+
+    if (this.state.halfMoveClock >= 50) {
+      this.setState({gameOver: 2});
+      return;
+    }
     let l = 0;
     for (let i = 0; i < 32; ++i){
       l += this.trimMoves(this.generateMoves(i)).length;
     }
-    console.log(l);
-    if (l === 0) this.setState({gameOver: true});
-    return l;
+    if (l === 0 ) this.setState({gameOver: 1});
   }
 
   //does not check if move is legal
@@ -335,16 +338,22 @@ class Board extends React.Component {
     if (pieceID === '\u2654' ){//castling, hard coded checks
       if (this.state.canCastle[0] && board[57] === null && board[58] === null && board[59] === null){
         moves.push([p,i,i-2,4]);
-      } else if (this.state.canCastle[1] && board[61] === null && board[62] === null){
+        console.log(4);
+      }
+      if (this.state.canCastle[1] && board[61] === null && board[62] === null){
         moves.push([p,i,i+2,5]);
+        console.log(5);
       }
     } else if (pieceID === '\u265a'){
-        if (this.state.canCastle[2] && board[1] === null && board[2] === null && board[3] === null){
-          moves.push([p,i,i-2,6]);
-        } else if (this.state.canCastle[3] && board[5] === null && board[6] === null){
-          moves.push([p,i,i+2,7]);
-        }
+      if (this.state.canCastle[2] && board[1] === null && board[2] === null && board[3] === null){
+        moves.push([p,i,i-2,6]);
+        console.log(6);
       }
+      if (this.state.canCastle[3] && board[5] === null && board[6] === null){
+        moves.push([p,i,i+2,7]);
+        console.log(7);
+      }
+    }
 
     return moves;
   }
@@ -427,7 +436,11 @@ class Board extends React.Component {
     } else {
       const p = this.state.pieces.indexOf(selected);
       const position = this.executeMove(p, selected, i, this.state.legals[i]);//move from selected to current square
+      let halfMove = this.state.halfMoveClock;
+      if (this.state.squares[i] === "\u2659" || this.state.squares[i] === "\u265f") halfMove = 0;
+      else halfMove++;
       this.setState({
+        halfMoveClock: halfMove,
         selected: -1,
         squares: position.squares,
         colors: position.colors,
@@ -436,7 +449,7 @@ class Board extends React.Component {
         enPassant: position.enPassant,
         legals: Array(64).fill(0),
         bNext:!this.state.bNext,
-      }, this.countAllLegals);
+      }, this.checkEndGame);
     }
   }
 
@@ -461,6 +474,11 @@ class Board extends React.Component {
       else color = "#0d0";
       if (legal) color = "#bbbb00";
     } else if (legal) color = "#ffff00";
+    const wKing = this.state.pieces[12];
+    const bKing = this.state.pieces[28];
+    if ((wKing === i && this.inDanger(wKing, this.state) & 2 && this.state.bNext)
+      ||(bKing === i && this.inDanger(bKing, this.state) & 1 && !this.state.bNext))
+     color = "#f44";
     return (
     <td key={i}>
     <Square
@@ -489,12 +507,15 @@ class Board extends React.Component {
     const player = 'Next player: ' + (this.state.bNext ? 'White' : 'Black');
     let gameOverStatus = null;
     if (this.state.gameOver){
-      const bNext = this.state.bNext;
-      const wKing = this.state.pieces[12];
-      const bKing = this.state.pieces[28];
-      if (this.inDanger(wKing, this.state) & 2 && bNext) gameOverStatus = 'Black wins';
-      else if (this.inDanger(bKing, this.state) & 1 && !bNext) gameOverStatus = 'White wins';
-      else gameOverStatus = 'Stalemate';
+      if (this.state.gameOver === 1){
+        const bNext = this.state.bNext;
+        const wKing = this.state.pieces[12];
+        const bKing = this.state.pieces[28];
+        if (this.inDanger(wKing, this.state) & 2 && bNext) gameOverStatus = 'Black wins';
+        else if (this.inDanger(bKing, this.state) & 1 && !bNext) gameOverStatus = 'White wins';
+        else gameOverStatus = 'Stalemate';
+      } else gameOverStatus = 'Draw by inactivity';
+
     }
     const squares = [];
     for (let i = 0; i < 8; i++){
