@@ -31,20 +31,33 @@ const mailbox64 = [
 ];
 
 const data = {
-    '\u2659':{ color: 1, hash: 1, name:  '', slide: false, offset: [ -9, -11 ], move: -10}, /* PAWN */
-    '\u2658':{ color: 1, hash: 2, name: 'N', slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */ },
-	'\u2657':{ color: 1, hash: 3, name: 'B', slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */ },
-	'\u2656':{ color: 1, hash: 4, name: 'R', slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */ },
-	'\u2655':{ color: 1, hash: 5, name: 'Q', slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */ },
-	'\u2654':{ color: 1, hash: 6, name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */ },
+    '\u2659':{ color: 1, hash: 0, name:  '', slide: false, offset: [ -9, -11 ], move: -10}, /* PAWN */
+    '\u2658':{ color: 1, hash: 1, name: 'N', slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */ },
+	'\u2657':{ color: 1, hash: 2, name: 'B', slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */ },
+	'\u2656':{ color: 1, hash: 3, name: 'R', slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */ },
+	'\u2655':{ color: 1, hash: 4, name: 'Q', slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */ },
+	'\u2654':{ color: 1, hash: 5, name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ],  /* KING */ },
     //black pieces
-    '\u265f':{ color: 2, hash: 7, name:  '', slide: false, offset: [ 9, 11 ], move: 10}, /* PAWN */
-    '\u265e':{ color: 2, hash: 8, name: 'N', slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */},
-    '\u265d':{ color: 2, hash: 9, name: 'B', slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */},
-    '\u265c':{ color: 2, hash: 10,name: 'R', slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */},
-    '\u265b':{ color: 2, hash: 11,name: 'Q', slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */},
-    '\u265a':{ color: 2, hash: 12,name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
+    '\u265f':{ color: 2, hash: 6, name:  '', slide: false, offset: [ 9, 11 ], move: 10}, /* PAWN */
+    '\u265e':{ color: 2, hash: 7, name: 'N', slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */},
+    '\u265d':{ color: 2, hash: 8, name: 'B', slide: true,  offset: [ -11,  -9,  9, 11 ], /* BISHOP */},
+    '\u265c':{ color: 2, hash: 9,name: 'R', slide: true,  offset: [ -10,  -1,  1, 10 ], /* ROOK */},
+    '\u265b':{ color: 2, hash: 10,name: 'Q', slide: true,  offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ], /* QUEEN */},
+    '\u265a':{ color: 2, hash: 11,name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
 };
+
+//initialize a table of hashes for a modified Zobrist hashing
+//https://www.chessprogramming.org/Zobrist_Hashing
+function initRNGTable(){
+  const table = [];
+  for (let i = 0; i < 64; ++i){
+    table.push([]);
+    for (let j = 0; j < 12; ++j){
+      table[i].push(Math.floor(Math.random() * 2**32));
+    }
+  }
+  return table;
+}
 
 function Piece(props) {
   let display;
@@ -121,6 +134,10 @@ class Board extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      seedTable: [initRNGTable(), initRNGTable()],
+      hash: [0, 0],
+      extraSeed: Array(6),//for hashing other data
+      //seed 0-4 is for castling, seed 5 for turn player, seed 6 for en passant
       squares: Array(64).fill(null),
       colors: Array(64).fill(null),
       //generate move per piece requires tracking pieces
@@ -132,7 +149,7 @@ class Board extends React.Component {
       halfMoveClock: 0,
       legals: Array(64).fill(0),
       canCastle: Array(4).fill(1),//white-long, white-short, black-long, black-short
-      history: [],
+      history: [[],[]],
       enPassant: -1,
       selected: -1,
       bNext: true,
@@ -140,6 +157,7 @@ class Board extends React.Component {
       promote: null,
       gameOver: 0,
     };
+
 
     const board = this.state.squares;
     //white pieces
@@ -170,33 +188,21 @@ class Board extends React.Component {
       this.state.colors[i+8] = 2;
       this.state.colors[i] = 2;
     }
-  }
 
-  //updates squares available to the focused piece
-  updateLegals(i){
-    const p = this.state.pieces.indexOf(i);
-    let legals = Array(64).fill(0);
-    if (p>=0) {
-      const moves = this.trimMoves(this.generateMoves(p));
-      for (const move of moves) {
-        legals[move[2]] = move[3];
+    for (let i = 0; i < this.state.extraSeed.length; ++i){
+      this.state.extraSeed[i] = Math.floor(Math.random() * 2**32);
+    }
+
+    for (let i = 0; i < board.length; ++i){
+      if (board[i] !== null){
+        const j = data[this.state.squares[i]].hash;
+        this.state.hash[0] ^= this.state.seedTable[0][i][j];
+        this.state.hash[1] ^= this.state.seedTable[1][i][j];
       }
     }
-    this.setState({legals: legals});
-    //console.log(legals);
-  }
 
-  checkEndGame(){
-
-    if (this.state.halfMoveClock >= 50) {
-      this.setState({gameOver: 2});
-      return;
-    }
-    let l = 0;
-    for (let i = 0; i < 32; ++i){
-      l += this.trimMoves(this.generateMoves(i)).length;
-    }
-    if (l === 0 ) this.setState({gameOver: 1});
+    this.state.history[0].push(this.state.hash[0]);
+    this.state.history[1].push(this.state.hash[1]);
   }
 
   //does not check if move is legal
@@ -280,6 +286,36 @@ class Board extends React.Component {
     };
   }
 
+  realizeMove(p, start, final, type){
+    const lastHash = this.hash(p,  start, final, type);
+    this.setState({
+          hash: lastHash,
+          history: [
+            [...this.state.history[0], lastHash[0]],
+            [...this.state.history[1], lastHash[1]]
+          ]
+        });
+    return this.executeMove(p,  start, final, type);
+  }
+
+  //use 2 32-bit hashes for the board instead of 1 64-bit hash because Javascript Number stops at 53 bit
+  hash(p, start, final, type){
+    const iterable = this.state.hash;
+    const board = this.state.squares;
+    for (let i = 0; i < 2; ++i){
+      if (board[final] !== null)
+        iterable[i] ^= this.state.seedTable[i][final][data[board[final]].hash];//remove captured piece if any
+      iterable[i] ^= this.state.seedTable[i][start][data[board[start]].hash];//these lines represent piece moving
+      iterable[i] ^= this.state.seedTable[i][final][data[board[start]].hash];
+      for (let j = 0; j < this.state.canCastle.length; j++){
+        iterable[i] ^= this.state.canCastle[j] && this.state.extraSeed[j];
+      }
+      iterable[i] ^= this.state.extraSeed[4];
+      iterable[i] ^= this.state.extraSeed[5]*this.state.enPassant;
+    }
+    return iterable;
+  }
+
   //generates pseudo-legal moves (moves that the pieces could make, but not necessarily results in a legal position)
   generateMoves(p){
     const i = this.state.pieces[p];
@@ -338,20 +374,16 @@ class Board extends React.Component {
     if (pieceID === '\u2654' ){//castling, hard coded checks
       if (this.state.canCastle[0] && board[57] === null && board[58] === null && board[59] === null){
         moves.push([p,i,i-2,4]);
-        console.log(4);
       }
       if (this.state.canCastle[1] && board[61] === null && board[62] === null){
         moves.push([p,i,i+2,5]);
-        console.log(5);
       }
     } else if (pieceID === '\u265a'){
       if (this.state.canCastle[2] && board[1] === null && board[2] === null && board[3] === null){
         moves.push([p,i,i-2,6]);
-        console.log(6);
       }
       if (this.state.canCastle[3] && board[5] === null && board[6] === null){
         moves.push([p,i,i+2,7]);
-        console.log(7);
       }
     }
 
@@ -420,6 +452,49 @@ class Board extends React.Component {
     return result;
   }
 
+  //updates squares available to the focused piece
+  updateLegals(i){
+    const p = this.state.pieces.indexOf(i);
+    let legals = Array(64).fill(0);
+    if (p>=0) {
+      const moves = this.trimMoves(this.generateMoves(p));
+      for (const move of moves) {
+        legals[move[2]] = move[3];
+      }
+    }
+    this.setState({legals: legals});
+  }
+
+  checkEndGame(){
+    let l = 0;
+    for (let i = 0; i < 32; ++i){
+      l += this.trimMoves(this.generateMoves(i)).length;
+    }
+    if (l === 0 ) {
+      this.setState({gameOver: 1});
+      return;
+    }
+
+    let repeat = 0;
+    const hashList = this.state.history;
+    const lastHash = this.state.hash;
+    for (let i = 0; i < hashList[0].length; ++i){
+      if (hashList[0][i] !== lastHash[0] || hashList[1][i] !== lastHash[1]){
+        continue;
+      } else repeat++;
+    }
+    if (repeat >= 3 ) {
+      this.setState({gameOver: 2});
+      return;
+    }
+
+    if (this.state.halfMoveClock >= 50) {
+      this.setState({gameOver: 3});
+      return;
+    }
+
+  }
+
   //just handle clicking a square
   handleClick(i){
     if (this.state.promoting >= 0) return;//promoting, board locked
@@ -435,7 +510,7 @@ class Board extends React.Component {
       this.setState({selected: i});
     } else {
       const p = this.state.pieces.indexOf(selected);
-      const position = this.executeMove(p, selected, i, this.state.legals[i]);//move from selected to current square
+      const position = this.realizeMove(p, selected, i, this.state.legals[i]);//move from selected to current square
       let halfMove = this.state.halfMoveClock;
       if (this.state.squares[i] === "\u2659" || this.state.squares[i] === "\u265f") halfMove = 0;
       else halfMove++;
@@ -506,17 +581,16 @@ class Board extends React.Component {
   render() {
     const player = 'Next player: ' + (this.state.bNext ? 'White' : 'Black');
     let gameOverStatus = null;
-    if (this.state.gameOver){
-      if (this.state.gameOver === 1){
-        const bNext = this.state.bNext;
-        const wKing = this.state.pieces[12];
-        const bKing = this.state.pieces[28];
-        if (this.inDanger(wKing, this.state) & 2 && bNext) gameOverStatus = 'Black wins';
-        else if (this.inDanger(bKing, this.state) & 1 && !bNext) gameOverStatus = 'White wins';
-        else gameOverStatus = 'Stalemate';
-      } else gameOverStatus = 'Draw by inactivity';
+    if (this.state.gameOver === 1){
+      const bNext = this.state.bNext;
+      const wKing = this.state.pieces[12];
+      const bKing = this.state.pieces[28];
+      if (this.inDanger(wKing, this.state) & 2 && bNext) gameOverStatus = 'Black wins';
+      else if (this.inDanger(bKing, this.state) & 1 && !bNext) gameOverStatus = 'White wins';
+      else gameOverStatus = 'Stalemate';
+    } else if (this.state.gameOver === 2) gameOverStatus = 'Draw by 3-fold repetition';
+    else if (this.state.gameOver === 3) gameOverStatus = 'Draw by inactivity';
 
-    }
     const squares = [];
     for (let i = 0; i < 8; i++){
       const row = [];
@@ -570,7 +644,6 @@ class Board extends React.Component {
         </table>
         {promotePieces}
         <div className="gameOver">
-          <ReadOnlySquare value = {' '}/>
           {gameOverStatus}
         </div>
       </div>
