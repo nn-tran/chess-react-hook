@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
+import 'chess-merida-font/css/chessmerida-webfont.css';
 
 //mailbox from https://www.chessprogramming.org/10x12_Board
 const mailbox = [
@@ -46,6 +47,54 @@ const data = {
     '\u265a':{ color: 2, name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
 };
 
+function Piece(props) {
+  let display;
+  switch (props.display){
+    case '\u2654':
+      display = "cm cm-w-king";
+      break;
+    case '\u2655':
+      display = "cm cm-w-queen";
+      break;
+    case '\u2656':
+      display = "cm cm-w-rook";
+      break;
+    case '\u2657':
+      display = "cm cm-w-bishop";
+      break;
+    case '\u2658':
+      display = "cm cm-w-knight";
+      break;
+    case '\u2659':
+      display = "cm cm-w-pawn";
+      break;
+    case '\u265a':
+      display = "cm cm-b-king";
+      break;
+    case '\u265b':
+      display = "cm cm-b-queen";
+      break;
+    case '\u265c':
+      display = "cm cm-b-rook";
+      break;
+    case '\u265d':
+      display = "cm cm-b-bishop";
+      break;
+    case '\u265e':
+      display = "cm cm-b-knight";
+      break;
+    case '\u265f':
+      display = "cm cm-b-pawn";
+      break;
+    default:
+  }
+  return (
+    <i
+      className={display}
+      aria-hidden="true"
+    />);
+}
+
 function Square(props) {
   return (
     <button
@@ -53,7 +102,7 @@ function Square(props) {
       onClick = {props.onClick}
       style={{backgroundColor: props.color}}
     >
-      {props.value}
+      <Piece display={props.value}/>
     </button>
   );
 }
@@ -304,22 +353,24 @@ class Board extends React.Component {
   trimMoves(moves){
     return moves.filter(move => {
       if ((move[0] < 16) !== this.state.bNext) return false;
-      if (move[3] === 4){
-        return !(this.inDanger(60, this.state) & 2)
-          && !(this.inDanger(59, this.state) & 2)
-          && !(this.inDanger(58, this.state) & 2);
-      } else if (move[3] === 5){
-        return !(this.inDanger(60, this.state) & 2)
-          && !(this.inDanger(61, this.state) & 2)
-          && !(this.inDanger(62, this.state) & 2);
-      } else if (move[3] === 6){
-        return !(this.inDanger(4, this.state) & 1)
-          && !(this.inDanger(3, this.state) & 1)
-          && !(this.inDanger(2, this.state) & 1);
-      } else if (move[3] === 7){
-        return !(this.inDanger(4, this.state) & 1)
-          && !(this.inDanger(5, this.state) & 1)
-          && !(this.inDanger(6, this.state) & 1);
+      switch (move[3]){
+        case 4:
+          return !(this.inDanger(60, this.state) & 2)
+            && !(this.inDanger(59, this.state) & 2)
+            && !(this.inDanger(58, this.state) & 2);
+        case 5:
+          return !(this.inDanger(60, this.state) & 2)
+            && !(this.inDanger(61, this.state) & 2)
+            && !(this.inDanger(62, this.state) & 2);
+        case 6:
+          return !(this.inDanger(4, this.state) & 1)
+            && !(this.inDanger(3, this.state) & 1)
+            && !(this.inDanger(2, this.state) & 1);
+        case 7:
+          return !(this.inDanger(4, this.state) & 1)
+            && !(this.inDanger(5, this.state) & 1)
+            && !(this.inDanger(6, this.state) & 1);
+        default://do nothing
       }
       let position;
       //promoting is treated as the regular move
@@ -413,7 +464,6 @@ class Board extends React.Component {
     return (
     <td key={i}>
     <Square
-      selected={this.state.selected === i ? true : false}
       value={this.state.squares[i]}
       color={color}
       onClick={() => this.handleClick(i)}
