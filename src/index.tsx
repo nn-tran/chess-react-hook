@@ -713,7 +713,7 @@ const Board = () => {
   return render
 }
 
-export const Game = () => (
+const Game = () => (
   <div className="game">
     <div className="game-board">
       <Board />
