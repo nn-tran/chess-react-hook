@@ -1,22 +1,22 @@
 {
   "files": {
-    "main.css": "/chess/static/css/main.10b3f23b.chunk.css",
-    "main.js": "/chess/static/js/main.037f1ece.chunk.js",
-    "main.js.map": "/chess/static/js/main.037f1ece.chunk.js.map",
-    "runtime-main.js": "/chess/static/js/runtime-main.b9e0870b.js",
-    "runtime-main.js.map": "/chess/static/js/runtime-main.b9e0870b.js.map",
-    "static/css/2.eaafa938.chunk.css": "/chess/static/css/2.eaafa938.chunk.css",
-    "static/js/2.2d48a8bb.chunk.js": "/chess/static/js/2.2d48a8bb.chunk.js",
-    "static/js/2.2d48a8bb.chunk.js.map": "/chess/static/js/2.2d48a8bb.chunk.js.map",
-    "index.html": "/chess/index.html",
-    "static/css/2.eaafa938.chunk.css.map": "/chess/static/css/2.eaafa938.chunk.css.map",
-    "static/css/main.10b3f23b.chunk.css.map": "/chess/static/css/main.10b3f23b.chunk.css.map",
-    "static/js/2.2d48a8bb.chunk.js.LICENSE.txt": "/chess/static/js/2.2d48a8bb.chunk.js.LICENSE.txt",
-    "static/media/chessmerida-webfont.css": "/chess/static/media/chessmerida-webfont.99c2cf4e.eot"
+    "main.css": "/chess-react-hook/static/css/main.10b3f23b.chunk.css",
+    "main.js": "/chess-react-hook/static/js/main.037f1ece.chunk.js",
+    "main.js.map": "/chess-react-hook/static/js/main.037f1ece.chunk.js.map",
+    "runtime-main.js": "/chess-react-hook/static/js/runtime-main.7643b775.js",
+    "runtime-main.js.map": "/chess-react-hook/static/js/runtime-main.7643b775.js.map",
+    "static/css/2.0eac9be9.chunk.css": "/chess-react-hook/static/css/2.0eac9be9.chunk.css",
+    "static/js/2.2d48a8bb.chunk.js": "/chess-react-hook/static/js/2.2d48a8bb.chunk.js",
+    "static/js/2.2d48a8bb.chunk.js.map": "/chess-react-hook/static/js/2.2d48a8bb.chunk.js.map",
+    "index.html": "/chess-react-hook/index.html",
+    "static/css/2.0eac9be9.chunk.css.map": "/chess-react-hook/static/css/2.0eac9be9.chunk.css.map",
+    "static/css/main.10b3f23b.chunk.css.map": "/chess-react-hook/static/css/main.10b3f23b.chunk.css.map",
+    "static/js/2.2d48a8bb.chunk.js.LICENSE.txt": "/chess-react-hook/static/js/2.2d48a8bb.chunk.js.LICENSE.txt",
+    "static/media/chessmerida-webfont.css": "/chess-react-hook/static/media/chessmerida-webfont.99c2cf4e.eot"
   },
   "entrypoints": [
-    "static/js/runtime-main.b9e0870b.js",
-    "static/css/2.eaafa938.chunk.css",
+    "static/js/runtime-main.7643b775.js",
+    "static/css/2.0eac9be9.chunk.css",
     "static/js/2.2d48a8bb.chunk.js",
     "static/css/main.10b3f23b.chunk.css",
     "static/js/main.037f1ece.chunk.js"
