@@ -1,24 +1,17 @@
 {
   "files": {
-    "main.css": "/chess-react-hook/static/css/main.10b3f23b.chunk.css",
-    "main.js": "/chess-react-hook/static/js/main.037f1ece.chunk.js",
-    "main.js.map": "/chess-react-hook/static/js/main.037f1ece.chunk.js.map",
-    "runtime-main.js": "/chess-react-hook/static/js/runtime-main.7643b775.js",
-    "runtime-main.js.map": "/chess-react-hook/static/js/runtime-main.7643b775.js.map",
-    "static/css/2.0eac9be9.chunk.css": "/chess-react-hook/static/css/2.0eac9be9.chunk.css",
-    "static/js/2.2d48a8bb.chunk.js": "/chess-react-hook/static/js/2.2d48a8bb.chunk.js",
-    "static/js/2.2d48a8bb.chunk.js.map": "/chess-react-hook/static/js/2.2d48a8bb.chunk.js.map",
+    "main.css": "/chess-react-hook/static/css/main.4080806d.css",
+    "main.js": "/chess-react-hook/static/js/main.2a1024e0.js",
+    "static/media/chessmerida-webfont.svg": "/chess-react-hook/static/media/chessmerida-webfont.75eae12748c1cabb0fb6.svg",
+    "static/media/chessmerida-webfont.eot": "/chess-react-hook/static/media/chessmerida-webfont.99c2cf4edf8a119ece47.eot",
+    "static/media/chessmerida-webfont.ttf": "/chess-react-hook/static/media/chessmerida-webfont.64ed3ab8d2f4a19ea390.ttf",
+    "static/media/chessmerida-webfont.woff": "/chess-react-hook/static/media/chessmerida-webfont.6d4c717770f4dcdda723.woff",
     "index.html": "/chess-react-hook/index.html",
-    "static/css/2.0eac9be9.chunk.css.map": "/chess-react-hook/static/css/2.0eac9be9.chunk.css.map",
-    "static/css/main.10b3f23b.chunk.css.map": "/chess-react-hook/static/css/main.10b3f23b.chunk.css.map",
-    "static/js/2.2d48a8bb.chunk.js.LICENSE.txt": "/chess-react-hook/static/js/2.2d48a8bb.chunk.js.LICENSE.txt",
-    "static/media/chessmerida-webfont.css": "/chess-react-hook/static/media/chessmerida-webfont.99c2cf4e.eot"
+    "main.4080806d.css.map": "/chess-react-hook/static/css/main.4080806d.css.map",
+    "main.2a1024e0.js.map": "/chess-react-hook/static/js/main.2a1024e0.js.map"
   },
   "entrypoints": [
-    "static/js/runtime-main.7643b775.js",
-    "static/css/2.0eac9be9.chunk.css",
-    "static/js/2.2d48a8bb.chunk.js",
-    "static/css/main.10b3f23b.chunk.css",
-    "static/js/main.037f1ece.chunk.js"
+    "static/css/main.4080806d.css",
+    "static/js/main.2a1024e0.js"
   ]
 }
