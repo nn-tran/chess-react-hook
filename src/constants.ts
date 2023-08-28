@@ -26,6 +26,8 @@ export const mailbox64 = [
   91, 92, 93, 94, 95, 96, 97, 98
 ]
 
+export type Piece = keyof typeof data;
+
 export const data = {
   '\u2659':{ color: 1, hash: 0, name:  '', slide: false, offset: [ -9, -11 ], move: -10}, /* PAWN */
   '\u2658':{ color: 1, hash: 1, name: 'N', slide: false, offset: [ -21, -19,-12, -8, 8, 12, 19, 21 ], /* KNIGHT */ },
@@ -46,8 +48,65 @@ export const startingPosition = [
   48, 49, 50, 51, 52, 53, 54, 55,
   56, 57, 58, 59, 60, 61, 62, 63,//white
   8,  9, 10, 11, 12, 13, 14, 15,
-  0,  1,  2,  3,  4,  5,  6,  7//black
+  0,  1,  2,  3,  4,  5,  6,  7,//black,
+  -1//sentinel
 ]
+
+export const startingPieceMap: {[key: number]: number} = {
+  0: 24, 1: 25, 2: 26, 3: 27, 4: 28, 5: 29, 6: 30, 7: 31, 8: 16, 9: 17, 10: 18, 11: 19, 12: 20, 13: 21, 14: 22, 15: 23, 
+  48: 0, 49: 1, 50: 2, 51: 3, 52: 4, 53: 5, 54: 6, 55: 7, 56: 8, 57: 9, 58: 10, 59: 11, 60: 12, 61: 13, 62: 14, 63: 15,
+  64: 32//sentinel
+}
+
+export const startingBoard: (Piece | null)[] = Array(64).fill(null)
+startingBoard[63] = "\u2656"
+startingBoard[62] = "\u2658"
+startingBoard[61] = "\u2657"
+startingBoard[60] = "\u2654"
+startingBoard[59] = "\u2655"
+startingBoard[58] = "\u2657"
+startingBoard[57] = "\u2658"
+startingBoard[56] = "\u2656"
+startingBoard[55] = "\u2659"
+startingBoard[54] = "\u2659"
+startingBoard[53] = "\u2659"
+startingBoard[52] = "\u2659"
+startingBoard[51] = "\u2659"
+startingBoard[50] = "\u2659"
+startingBoard[49] = "\u2659"
+startingBoard[48] = "\u2659"
+
+startingBoard[0] = "\u265c"
+startingBoard[1] = "\u265e"
+startingBoard[2] = "\u265d"
+startingBoard[3] = "\u265b"
+startingBoard[4] = "\u265a"
+startingBoard[5] = "\u265d"
+startingBoard[6] = "\u265e"
+startingBoard[7] = "\u265c"
+startingBoard[8] = "\u265f"
+startingBoard[9] = "\u265f"
+startingBoard[10] = "\u265f"
+startingBoard[11] = "\u265f"
+startingBoard[12] = "\u265f"
+startingBoard[13] = "\u265f"
+startingBoard[14] = "\u265f"
+startingBoard[15] = "\u265f"
+
+export enum PieceColor {
+  White = 1,
+  Black = 2,
+}
+
+export const startingColors: (PieceColor | null)[] = Array(64).fill(null)
+for (let i = 0; i < 8; ++i) {
+  startingColors[i + 48] = PieceColor.White
+  startingColors[i + 56] = PieceColor.White
+  startingColors[i + 8] = PieceColor.Black
+  startingColors[i] = PieceColor.Black
+}
+
+export const empty64 = Array(64).fill(0)
 
 //initialize a table of hashes for a modified Zobrist hashing
 //https://www.chessprogramming.org/Zobrist_Hashing
