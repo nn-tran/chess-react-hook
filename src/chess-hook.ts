@@ -430,5 +430,5 @@ export const useChessHook = () => {
 
   useEffect(() => setGameState(checkEndGame), [checkEndGame])
 
-  return { legalMoves, selected, pieceStates, currentBoard: boardDisplay, inDanger, turn, gameState, handleClick, handleClickPromote, promotion }
+  return { legalMoves, selected, pieceStates, boardDisplay, inDanger, turn, gameState, handleClick, handleClickPromote, promotion }
 }

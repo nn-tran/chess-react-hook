@@ -4,7 +4,8 @@ A basic, but complete chess board done in React, using CRA, Typescript, and hook
 Only legal moves are allowed.
 Threefold repetition is implemented using a modified Zobrist hashing algorithm using 2x32-bit seeds.
 
-Play with it [here](https://nn-tran.github.io/chess/).
+Play with it [here](https://nn-tran.github.io/chess-react-hook/).
 
 ![](screenshot.png)
+
 See class component version: https://github.com/nn-tran/chess.

@@ -9,7 +9,7 @@ import { Square, ReadOnlySquare } from "./squares";
 import { useChessHook } from "./chess-hook";
 
 const Board = () => {
-  const { legalMoves, selected, pieceStates, currentBoard, turn, gameState, promotion, inDanger, handleClick, handleClickPromote } = useChessHook();
+  const { legalMoves, selected, pieceStates, boardDisplay, turn, gameState, promotion, inDanger, handleClick, handleClickPromote } = useChessHook();
 
   const renderSquare = (i: number) => {
     const legal = !(legalMoves[i] === 0)
@@ -25,14 +25,14 @@ const Board = () => {
     const wKing = pieceStates[12]
     const bKing = pieceStates[28]
     if (
-      (wKing === i && inDanger(wKing, currentBoard) & 2 && turn) ||
-      (bKing === i && inDanger(bKing, currentBoard) & 1 && !turn)
+      (wKing === i && inDanger(wKing, boardDisplay) & 2 && turn) ||
+      (bKing === i && inDanger(bKing, boardDisplay) & 1 && !turn)
     )
       color = "#f44"
     return (
       <td key={i}>
         <Square
-          value={currentBoard[i]}
+          value={boardDisplay[i]}
           color={color}
           onClick={() => handleClick(i)}
         />
@@ -59,9 +59,9 @@ const Board = () => {
   if (gameState === 1) {
     const wKing = pieceStates[12]
     const bKing = pieceStates[28]
-    if (inDanger(wKing, currentBoard) & 2 && turn)
+    if (inDanger(wKing, boardDisplay) & 2 && turn)
       gameOverStatus = "Black wins"
-    else if (inDanger(bKing, currentBoard) & 1 && !turn)
+    else if (inDanger(bKing, boardDisplay) & 1 && !turn)
       gameOverStatus = "White wins"
     else gameOverStatus = "Stalemate"
   } else if (gameState === 2) gameOverStatus = "Draw by 3-fold repetition"
