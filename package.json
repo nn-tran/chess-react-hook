@@ -1,5 +1,5 @@
 {
-  "homepage": "http://nn-tran.github.io/chess",
+  "homepage": "https://nn-tran.github.io/chess-react-hook/",
   "name": "chess",
   "version": "0.2.0",
   "private": true,
@@ -15,7 +15,7 @@
     "gh-pages": "^3.2.3",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-scripts": "4.0.3",
+    "react-scripts": "^5.0.1",
     "typescript": "^5.0.2",
     "web-vitals": "^1.1.2"
   },
