@@ -77,8 +77,9 @@ export const useChessHook = () => {
     type: number,
     hash?: number[]
   ): BoardState => {
-
-    const hashString = hash ? hash.join('') : hashMove(startSquare, finalSquare).join('')
+    const hashString = hash
+      ? hash.join("")
+      : hashMove(startSquare, finalSquare).join("")
     const executedMove = executedMoves.get(hashString)
     if (executedMove) {
       if (type >= 8) executedMove.promotion.square = finalSquare
@@ -168,7 +169,7 @@ export const useChessHook = () => {
       }
     } else {
       //promotion
-      promotion.square = finalSquare      
+      promotion.square = finalSquare
     }
     executedMoves.set(hashString, result)
     return result
@@ -178,15 +179,21 @@ export const useChessHook = () => {
   const hashMove = (startSquare: number, finalSquare: number) => {
     const iterable = history[history.length - 1].slice()
     const board = boardDisplay
-    if (board[finalSquare] !== null){
-      iterable[0] ^= hashSeeds[0][finalSquare][data[board[finalSquare] as Piece].hash] //remove captured piece if any
-      iterable[1] ^= hashSeeds[1][finalSquare][data[board[finalSquare] as Piece].hash]
+    if (board[finalSquare] !== null) {
+      iterable[0] ^=
+        hashSeeds[0][finalSquare][data[board[finalSquare] as Piece].hash] //remove captured piece if any
+      iterable[1] ^=
+        hashSeeds[1][finalSquare][data[board[finalSquare] as Piece].hash]
     }
-      
-    iterable[0] ^= hashSeeds[0][startSquare][data[board[startSquare] as Piece].hash] //moving
-    iterable[1] ^= hashSeeds[1][startSquare][data[board[startSquare] as Piece].hash]
-    iterable[0] ^= hashSeeds[0][finalSquare][data[board[startSquare] as Piece].hash]
-    iterable[1] ^= hashSeeds[1][finalSquare][data[board[startSquare] as Piece].hash]
+
+    iterable[0] ^=
+      hashSeeds[0][startSquare][data[board[startSquare] as Piece].hash] //moving
+    iterable[1] ^=
+      hashSeeds[1][startSquare][data[board[startSquare] as Piece].hash]
+    iterable[0] ^=
+      hashSeeds[0][finalSquare][data[board[startSquare] as Piece].hash]
+    iterable[1] ^=
+      hashSeeds[1][finalSquare][data[board[startSquare] as Piece].hash]
     for (let j = 0; j < castleAvailable.length; ++j) {
       iterable[0] ^= (castleAvailable[j] && extraSeeds[j]) as number
       iterable[1] ^= (castleAvailable[j] && extraSeeds[j]) as number
@@ -195,7 +202,7 @@ export const useChessHook = () => {
     iterable[0] ^= extraSeeds[5] * enPassantSquare
     iterable[1] ^= extraSeeds[4]
     iterable[1] ^= extraSeeds[5] * enPassantSquare
-      
+
     return iterable
   }
 
@@ -222,7 +229,8 @@ export const useChessHook = () => {
     if (i === -1) return moves //piece captured
     const board = boardDisplay
     const colors = color
-    const enemy = colors[i] === PieceColor.White ? PieceColor.Black : PieceColor.White
+    const enemy =
+      colors[i] === PieceColor.White ? PieceColor.Black : PieceColor.White
     const pieceDisplay = board[i]
     const piece = data[pieceDisplay as Piece]
     if (piece.name) {
@@ -447,6 +455,6 @@ export const useChessHook = () => {
     handleMove,
     handlePromote,
     inDanger,
-    showLegalSquares
+    showLegalSquares,
   }
 }
