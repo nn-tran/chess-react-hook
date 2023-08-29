@@ -9,7 +9,30 @@ import { Square, ReadOnlySquare } from "./squares";
 import { useChessHook } from "./chess-hook";
 
 const Board = () => {
-  const { legalMoves, selected, pieceStates, boardDisplay, turn, gameState, promotion, inDanger, handleClick, handleClickPromote } = useChessHook();
+  const { legalMoves, pieceStates, boardDisplay, turn, gameState, promotion, inDanger, handleMove, handlePromote, showLegalSquares } = useChessHook();
+
+  const [selected, setSelected] = React.useState(-1)
+
+
+  //just handle clicking a square
+  const handleClick = (i: number) => {
+    if (promotion.square >= 0) return //promoting, board locked
+    if (gameState)
+      //game state > 0 is game over
+      return
+    const squares = boardDisplay
+    if (
+      selected === -1 || //haven't clicked
+      selected === i || //clicked the same square
+      squares[selected] === null || //clicked an empty square
+      legalMoves[i] === 0 //clicked an illegal square
+    ) {
+      showLegalSquares(i)
+      setSelected(i)
+    } else {
+      handleMove(selected, i)
+    }
+  }
 
   const renderSquare = (i: number) => {
     const legal = !(legalMoves[i] === 0)
@@ -48,7 +71,7 @@ const Board = () => {
         <Square
           value={i}
           color={"#fff"}
-          onClick={() => handleClickPromote(i)}
+          onClick={() => handlePromote(i)}
         />
       </td>
     )

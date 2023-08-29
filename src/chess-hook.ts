@@ -15,13 +15,6 @@ import {
   PieceColor,
 } from "./constants"
 
-enum LegalMove {
-  Illegal = 0,
-  White = 1,
-  Black = 2,
-  Both = 3,
-}
-
 type BoardState = {
   board: (Piece | null)[]
   colors: (PieceColor | null)[]
@@ -36,7 +29,6 @@ type BoardState = {
 const executedMoves = new Map<string, BoardState>()
 
 export const useChessHook = () => {
-  const [selected, setSelected] = useState(-1)
   const [boardDisplay, setDisplay] = useState<(Piece | null)[]>(startingBoard)
   const [color, setColor] = useState<(PieceColor | null)[]>(startingColors)
   const [pieceStates, setPieceStates] = useState(startingPosition)
@@ -50,7 +42,7 @@ export const useChessHook = () => {
   const [halfClock, setHalfClock] = useState(0)
   const [turn, setTurn] = useState(true)
   const [gameState, setGameState] = useState(0)
-  const [legalMoves, setLegalMoves] = useState<LegalMove[]>(empty64)
+  const [legalMoves, setLegalMoves] = useState<number[]>(empty64)
   const [castleAvailable, setCastleAvailable] = useState([
     true,
     true,
@@ -72,8 +64,9 @@ export const useChessHook = () => {
   //does not check if move is legal
   //returns the resulting position
   //type:
-  //  <0: pawn move, number is en passant square with negative sign
-  //  0, 1, 2: regular move
+  //  <0: pawn double move, number is en passant square with negative sign
+  //  1: regular move
+  //  2: capture
   //  3: en passant capture
   //  4, 5, 6, 7: castling
   //  8+: promotion
@@ -84,9 +77,11 @@ export const useChessHook = () => {
     type: number,
     hash?: number[]
   ): BoardState => {
+
     const hashString = hash ? hash.join('') : hashMove(startSquare, finalSquare).join('')
     const executedMove = executedMoves.get(hashString)
     if (executedMove) {
+      if (type >= 8) executedMove.promotion.square = finalSquare
       return executedMove
     }
     const board = boardDisplay.slice()
@@ -94,8 +89,7 @@ export const useChessHook = () => {
     const castle = castleAvailable.slice()
     const pieces = pieceStates.slice()
     const piecesMap = { ...pieceMapper }
-
-    let promotion = { square: -1, piece: null }
+    const promotion = { square: -1, piece: null }
     const result = {
       board,
       colors,
@@ -174,7 +168,7 @@ export const useChessHook = () => {
       }
     } else {
       //promotion
-      promotion.square = finalSquare
+      promotion.square = finalSquare      
     }
     executedMoves.set(hashString, result)
     return result
@@ -184,20 +178,24 @@ export const useChessHook = () => {
   const hashMove = (startSquare: number, finalSquare: number) => {
     const iterable = history[history.length - 1].slice()
     const board = boardDisplay
-    for (let i = 0; i < 2; ++i) {
-      if (board[finalSquare] !== null)
-        iterable[i] ^=
-          hashSeeds[i][finalSquare][data[board[finalSquare] as Piece].hash] //remove captured piece if any
-      iterable[i] ^=
-        hashSeeds[i][startSquare][data[board[startSquare] as Piece].hash] //moving
-      iterable[i] ^=
-        hashSeeds[i][finalSquare][data[board[startSquare] as Piece].hash]
-      for (let j = 0; j < castleAvailable.length; ++j) {
-        iterable[i] ^= (castleAvailable[j] && extraSeeds[j]) as number
-      }
-      iterable[i] ^= extraSeeds[4]
-      iterable[i] ^= extraSeeds[5] * enPassantSquare
+    if (board[finalSquare] !== null){
+      iterable[0] ^= hashSeeds[0][finalSquare][data[board[finalSquare] as Piece].hash] //remove captured piece if any
+      iterable[1] ^= hashSeeds[1][finalSquare][data[board[finalSquare] as Piece].hash]
     }
+      
+    iterable[0] ^= hashSeeds[0][startSquare][data[board[startSquare] as Piece].hash] //moving
+    iterable[1] ^= hashSeeds[1][startSquare][data[board[startSquare] as Piece].hash]
+    iterable[0] ^= hashSeeds[0][finalSquare][data[board[startSquare] as Piece].hash]
+    iterable[1] ^= hashSeeds[1][finalSquare][data[board[startSquare] as Piece].hash]
+    for (let j = 0; j < castleAvailable.length; ++j) {
+      iterable[0] ^= (castleAvailable[j] && extraSeeds[j]) as number
+      iterable[1] ^= (castleAvailable[j] && extraSeeds[j]) as number
+    }
+    iterable[0] ^= extraSeeds[4]
+    iterable[0] ^= extraSeeds[5] * enPassantSquare
+    iterable[1] ^= extraSeeds[4]
+    iterable[1] ^= extraSeeds[5] * enPassantSquare
+      
     return iterable
   }
 
@@ -217,16 +215,16 @@ export const useChessHook = () => {
   }
 
   //generates pseudo-legal moves (moves that the pieces could make, but not necessarily results in a legal position)
-  const generateMoves = (piecePosition: number) => {
+  const generateMoves = (pieceIdx: number) => {
     const pieces = pieceStates
-    const i = pieces[piecePosition]
+    const i = pieces[pieceIdx]
     let moves: number[][] = [] //array of [piecePosition, startSquare, finalSquare, moveType]
-    if (i === -1) return moves
+    if (i === -1) return moves //piece captured
     const board = boardDisplay
     const colors = color
-    const enemy = colors[i] === 1 ? 2 : 1
-    const pieceID = board[i]
-    const piece = data[pieceID as Piece]
+    const enemy = colors[i] === PieceColor.White ? PieceColor.Black : PieceColor.White
+    const pieceDisplay = board[i]
+    const piece = data[pieceDisplay as Piece]
     if (piece.name) {
       //non-pawns
       for (const offset of piece.offset) {
@@ -235,10 +233,10 @@ export const useChessHook = () => {
           if (n === -1) break /* outside board */
           if (colors[n] !== null) {
             if (colors[n] === enemy)
-              moves.push([piecePosition, i, n, 2]) /* capture from i to n */
+              moves.push([pieceIdx, i, n, 2]) /* capture from i to n */
             break
           }
-          moves.push([piecePosition, i, n, 1]) /* quiet move from i to n */
+          moves.push([pieceIdx, i, n, 1]) /* quiet move from i to n */
           if (!piece.slide) break /* next direction */
         }
       }
@@ -251,20 +249,20 @@ export const useChessHook = () => {
         if (n !== -1 && colors[n] === enemy) {
           if ((n <= 7 && n >= 0) || (n <= 63 && n >= 56)) {
             //pawns reaching last rank must promote
-            moves.push([piecePosition, i, n, 9])
-          } else moves.push([piecePosition, i, n, 2])
+            moves.push([pieceIdx, i, n, 9])
+          } else moves.push([pieceIdx, i, n, 2])
         } else if (n !== -1 && enPassantSquare === n) {
           //captures en passant
-          moves.push([piecePosition, i, n, 3])
+          moves.push([pieceIdx, i, n, 3])
         }
       }
       const n = mailbox[mailbox64[i] + (piece as { move: number }).move] //moving forward
       if (colors[n] === null) {
         if ((n <= 7 && n >= 0) || (n <= 63 && n >= 56)) {
           //pawns reaching last rank must promote
-          moves.push([piecePosition, i, n, 8])
+          moves.push([pieceIdx, i, n, 8])
         } else {
-          moves.push([piecePosition, i, n, 1])
+          moves.push([pieceIdx, i, n, 1])
           if (
             (n <= 23 && n >= 16 && colors[i] === 2) ||
             (n <= 47 && n >= 40 && colors[i] === 1)
@@ -272,13 +270,13 @@ export const useChessHook = () => {
             //if the piece could land on the 3rd/6th rank, it must have started from the origin
             const m = mailbox[mailbox64[n] + (piece as { move: number }).move]
             if (colors[m] === null) {
-              moves.push([piecePosition, i, m, -n]) //type carries information required for en passant
+              moves.push([pieceIdx, i, m, -n]) //type carries information required for en passant
             }
           }
         }
       }
     }
-    if (pieceID === "\u2654") {
+    if (pieceDisplay === "\u2654") {
       //castling, hard coded checks
       if (
         castleAvailable[0] &&
@@ -286,22 +284,22 @@ export const useChessHook = () => {
         board[58] === null &&
         board[59] === null
       ) {
-        moves.push([piecePosition, i, i - 2, 4])
+        moves.push([pieceIdx, i, i - 2, 4])
       }
       if (castleAvailable[1] && board[61] === null && board[62] === null) {
-        moves.push([piecePosition, i, i + 2, 5])
+        moves.push([pieceIdx, i, i + 2, 5])
       }
-    } else if (pieceID === "\u265a") {
+    } else if (pieceDisplay === "\u265a") {
       if (
         castleAvailable[2] &&
         board[1] === null &&
         board[2] === null &&
         board[3] === null
       ) {
-        moves.push([piecePosition, i, i - 2, 6])
+        moves.push([pieceIdx, i, i - 2, 6])
       }
       if (castleAvailable[3] && board[5] === null && board[6] === null) {
-        moves.push([piecePosition, i, i + 2, 7])
+        moves.push([pieceIdx, i, i + 2, 7])
       }
     }
     return moves
@@ -377,7 +375,7 @@ export const useChessHook = () => {
   }
 
   //get squares available to the piece at current square
-  const showLegalSquares = (target: number): LegalMove[] => {
+  const showLegalSquares = (target: number) => {
     const p = pieceMapper[target]
     let legals = empty64.slice()
     if (p >= 0) {
@@ -386,46 +384,29 @@ export const useChessHook = () => {
         legals[move[2]] = move[3]
       }
     }
-    return legals
+    setLegalMoves(legals)
   }
 
-  //just handle clicking a square
-  const handleClick = (i: number) => {
-    if (promotion.square >= 0) return //promoting, board locked
-    if (gameState)
-      //game state > 0 is game over
-      return
-    const squares = boardDisplay
-    if (
-      selected === -1 || //haven't clicked
-      selected === i || //clicked the same square
-      squares[selected] === null || //clicked an empty square
-      legalMoves[i] === 0 //clicked an illegal square
-    ) {
-      setLegalMoves(showLegalSquares(i))
-      setSelected(i)
-    } else {
-      const p = pieceMapper[selected]
-      const position = realizeMove(p, selected, i, legalMoves[i]) //move from selected to current square
-      setHalfClock((halfClock) =>
-        boardDisplay[i] === "\u2659" || boardDisplay[i] === "\u265f"
-          ? 0
-          : halfClock + 1
-      )
-      setSelected(-1)
-      setDisplay(position.board)
-      setColor(position.colors)
-      setPieceStates(position.pieces)
-      setPieceMapper(position.piecesMap)
-      setCastleAvailable(position.castle)
-      setEnPassantSquare(position.enPassant)
-      setPromotion(position.promotion)
-      setLegalMoves(empty64.slice())
-      setTurn(!turn)
-    }
+  const handleMove = (start: number, end: number) => {
+    const piece = pieceMapper[start]
+    const position = realizeMove(piece, start, end, legalMoves[end]) //move from selected to current square
+    setHalfClock((halfClock) =>
+      position.board[end] === "\u2659" || position.board[end] === "\u265f"
+        ? 0
+        : halfClock + 1
+    )
+    setDisplay(position.board)
+    setColor(position.colors)
+    setPieceStates(position.pieces)
+    setPieceMapper(position.piecesMap)
+    setCastleAvailable(position.castle)
+    setEnPassantSquare(position.enPassant)
+    setPromotion(position.promotion)
+    setLegalMoves(empty64.slice())
+    setTurn(!turn)
   }
 
-  const handleClickPromote = (piece: Piece) => {
+  const handlePromote = (piece: Piece) => {
     const promoting = promotion.square
     const board = boardDisplay
     board[promoting] = piece
@@ -458,14 +439,14 @@ export const useChessHook = () => {
 
   return {
     legalMoves,
-    selected,
     pieceStates,
     boardDisplay,
-    inDanger,
     turn,
     gameState,
-    handleClick,
-    handleClickPromote,
     promotion,
+    handleMove,
+    handlePromote,
+    inDanger,
+    showLegalSquares
   }
 }

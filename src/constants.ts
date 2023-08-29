@@ -106,7 +106,7 @@ for (let i = 0; i < 8; ++i) {
   startingColors[i] = PieceColor.Black
 }
 
-export const empty64 = Array(64).fill(0)
+export const empty64: number[] = Array(64).fill(0)
 
 //initialize a table of hashes for a modified Zobrist hashing
 //https://www.chessprogramming.org/Zobrist_Hashing
