@@ -124,6 +124,6 @@ const initRNGTable = () => {
 
 export const hashSeeds = [initRNGTable(), initRNGTable()] //hashing table position for game draw check
 export const extraSeeds = Array.from({ length: 6 }, () =>
-  Math.floor(Math.random() * 2 ** 32)
+  Math.floor(Math.random() * 2 ** 40)
 ) //for hashing other data
 //seed 0-3 is for castling, seed 4 for turn player, seed 5 for en passant
