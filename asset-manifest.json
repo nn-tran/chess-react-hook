@@ -1,17 +1,17 @@
 {
   "files": {
-    "main.css": "/chess-react-hook/static/css/main.4080806d.css",
-    "main.js": "/chess-react-hook/static/js/main.b9bb6d2d.js",
+    "main.css": "/chess-react-hook/static/css/main.f8833bd5.css",
+    "main.js": "/chess-react-hook/static/js/main.cb57f683.js",
     "static/media/chessmerida-webfont.svg": "/chess-react-hook/static/media/chessmerida-webfont.75eae12748c1cabb0fb6.svg",
     "static/media/chessmerida-webfont.eot": "/chess-react-hook/static/media/chessmerida-webfont.99c2cf4edf8a119ece47.eot",
     "static/media/chessmerida-webfont.ttf": "/chess-react-hook/static/media/chessmerida-webfont.64ed3ab8d2f4a19ea390.ttf",
     "static/media/chessmerida-webfont.woff": "/chess-react-hook/static/media/chessmerida-webfont.6d4c717770f4dcdda723.woff",
     "index.html": "/chess-react-hook/index.html",
-    "main.4080806d.css.map": "/chess-react-hook/static/css/main.4080806d.css.map",
-    "main.b9bb6d2d.js.map": "/chess-react-hook/static/js/main.b9bb6d2d.js.map"
+    "main.f8833bd5.css.map": "/chess-react-hook/static/css/main.f8833bd5.css.map",
+    "main.cb57f683.js.map": "/chess-react-hook/static/js/main.cb57f683.js.map"
   },
   "entrypoints": [
-    "static/css/main.4080806d.css",
-    "static/js/main.b9bb6d2d.js"
+    "static/css/main.f8833bd5.css",
+    "static/js/main.cb57f683.js"
   ]
 }
