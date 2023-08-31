@@ -17,12 +17,24 @@ import {
 
 type BoardState = {
   board: (Piece | null)[]
-  colors: (PieceColor | null)[]
+  colors: Int8Array
   castle: boolean[]
-  pieces: number[]
-  promotion: { square: number; piece: Piece | null }
+  pieces: Int8Array
+  promotion: number
   enPassant: number
   piecesMap: { [key: number]: number }
+}
+
+const enum MoveType {
+  Quiet = 1,
+  Capture = 2,
+  EnPassantCapture = 3,
+  LongCastle = 4,
+  ShortCastle = 5,
+  BLongCastle = 6,
+  BShortCastle = 7,
+  QuietPromote = 8,
+  CapturePromote = 9,
 }
 
 //for memoization
@@ -30,19 +42,16 @@ const executedMoves = new Map<string, BoardState>()
 
 export const useChessHook = () => {
   const [boardDisplay, setDisplay] = useState<(Piece | null)[]>(startingBoard)
-  const [color, setColor] = useState<(PieceColor | null)[]>(startingColors)
+  const [color, setColor] = useState<Int8Array>(startingColors)
   const [pieceStates, setPieceStates] = useState(startingPosition)
   const [pieceMapper, setPieceMapper] = useState(startingPieceMap)
-  const [promotion, setPromotion] = useState<{
-    square: number
-    piece: null | Piece
-  }>({ square: -1, piece: null })
+  const [promotion, setPromotion] = useState(-1)
   const [enPassantSquare, setEnPassantSquare] = useState(-1)
 
   const [halfClock, setHalfClock] = useState(0)
   const [turn, setTurn] = useState(true)
   const [gameState, setGameState] = useState(0)
-  const [legalMoves, setLegalMoves] = useState<number[]>(empty64)
+  const [legalMoves, setLegalMoves] = useState<Int8Array>(empty64)
   const [castleAvailable, setCastleAvailable] = useState([
     true,
     true,
@@ -74,7 +83,7 @@ export const useChessHook = () => {
     pieceIdx: number,
     startSquare: number,
     finalSquare: number,
-    type: number,
+    type: number | MoveType,
     hash?: number[]
   ): BoardState => {
     const hashString = hash
@@ -82,7 +91,7 @@ export const useChessHook = () => {
       : hashMove(startSquare, finalSquare).join("")
     const executedMove = executedMoves.get(hashString)
     if (executedMove) {
-      if (type >= 8) executedMove.promotion.square = finalSquare
+      if (type >= 8) executedMove.promotion = finalSquare
       return executedMove
     }
     const board = boardDisplay.slice()
@@ -90,15 +99,14 @@ export const useChessHook = () => {
     const castle = castleAvailable.slice()
     const pieces = pieceStates.slice()
     const piecesMap = { ...pieceMapper }
-    const promotion = { square: -1, piece: null }
     const result = {
       board,
       colors,
       castle,
       pieces,
-      promotion,
-      enPassant: -1,
       piecesMap,
+      promotion: -1,
+      enPassant: -1,
     }
 
     if (board[finalSquare] !== null) {
@@ -111,7 +119,7 @@ export const useChessHook = () => {
     board[finalSquare] = board[startSquare]
     board[startSquare] = null
     colors[finalSquare] = colors[startSquare]
-    colors[startSquare] = null
+    colors[startSquare] = 0
 
     if (type < 0) result.enPassant = -type
 
@@ -120,56 +128,55 @@ export const useChessHook = () => {
       castle[1] = castle[1] && startSquare !== 63 && startSquare !== 60 //right white rook moved or white king moved
       castle[2] = castle[2] && startSquare !== 0 && startSquare !== 4 //left black rook moved or black king moved
       castle[3] = castle[3] && startSquare !== 7 && startSquare !== 4 //right white rook moved or black king moved
-    } else if (type === 3) {
-      //en passant capture
+    } else if (type === MoveType.EnPassantCapture) {
       const direction =
         finalSquare > startSquare
           ? finalSquare - startSquare - 8
           : finalSquare - startSquare + 8
       pieces[piecesMap[startSquare + direction]] = -1
       board[startSquare + direction] = null
-      colors[startSquare + direction] = null
+      colors[startSquare + direction] = 0
     } else if (type < 8) {
       //castling, hard coded
       castle[type - 4] = false //disable the type of castling we just did
       switch (type) {
-        case 4: //0-0-0
+        case MoveType.LongCastle:
           castle[1] = false //disable the other way of castling (can't castle long after castling short, and vice versa)
           pieces[8] = 59
           board[59] = board[56]
           colors[59] = colors[56]
           board[56] = null
-          colors[56] = null //these 5 lines are just moving the rook
+          colors[56] = 0 //these 5 lines are just moving the rook
           break
-        case 5: //0-0
+        case MoveType.ShortCastle:
           castle[0] = false
           pieces[15] = 61
           board[61] = board[63]
           colors[61] = colors[63]
           board[63] = null
-          colors[63] = null
+          colors[63] = 0
           break
-        case 6: //...0-0-0
+        case MoveType.BLongCastle:
           castle[3] = false
           pieces[24] = 3
           board[3] = board[0]
           colors[3] = colors[0]
           board[0] = null
-          colors[0] = null
+          colors[0] = 0
           break
-        case 7: //...0-0
+        case MoveType.BShortCastle:
           castle[2] = false
           pieces[31] = 5
           board[5] = board[7]
           colors[5] = colors[7]
           board[7] = null
-          colors[7] = null
+          colors[7] = 0
           break
         default: //do nothing
       }
     } else {
       //promotion
-      promotion.square = finalSquare
+      result.promotion = finalSquare
     }
     executedMoves.set(hashString, result)
     return result
@@ -210,7 +217,7 @@ export const useChessHook = () => {
     pieceNumber: number,
     startSquare: number,
     finalSquare: number,
-    type: number
+    type: number | MoveType
   ) => {
     const hashedMove = hashMove(startSquare, finalSquare)
     setHistory((history) => {
@@ -241,10 +248,20 @@ export const useChessHook = () => {
           if (n === -1) break /* outside board */
           if (colors[n] !== null) {
             if (colors[n] === enemy)
-              moves.push([pieceIdx, i, n, 2]) /* capture from i to n */
+              moves.push([
+                pieceIdx,
+                i,
+                n,
+                MoveType.Capture,
+              ]) /* capture from i to n */
             break
           }
-          moves.push([pieceIdx, i, n, 1]) /* quiet move from i to n */
+          moves.push([
+            pieceIdx,
+            i,
+            n,
+            MoveType.Quiet,
+          ]) /* quiet move from i to n */
           if (!piece.slide) break /* next direction */
         }
       }
@@ -257,7 +274,7 @@ export const useChessHook = () => {
         if (n !== -1 && colors[n] === enemy) {
           if ((n <= 7 && n >= 0) || (n <= 63 && n >= 56)) {
             //pawns reaching last rank must promote
-            moves.push([pieceIdx, i, n, 9])
+            moves.push([pieceIdx, i, n, MoveType.CapturePromote])
           } else moves.push([pieceIdx, i, n, 2])
         } else if (n !== -1 && enPassantSquare === n) {
           //captures en passant
@@ -268,12 +285,12 @@ export const useChessHook = () => {
       if (colors[n] === null) {
         if ((n <= 7 && n >= 0) || (n <= 63 && n >= 56)) {
           //pawns reaching last rank must promote
-          moves.push([pieceIdx, i, n, 8])
+          moves.push([pieceIdx, i, n, MoveType.QuietPromote])
         } else {
-          moves.push([pieceIdx, i, n, 1])
+          moves.push([pieceIdx, i, n, MoveType.Quiet])
           if (
-            (n <= 23 && n >= 16 && colors[i] === 2) ||
-            (n <= 47 && n >= 40 && colors[i] === 1)
+            (n <= 23 && n >= 16 && colors[i] === PieceColor.Black) ||
+            (n <= 47 && n >= 40 && colors[i] === PieceColor.White)
           ) {
             //if the piece could land on the 3rd/6th rank, it must have started from the origin
             const m = mailbox[mailbox64[n] + (piece as { move: number }).move]
@@ -415,11 +432,10 @@ export const useChessHook = () => {
   }
 
   const handlePromote = (piece: Piece) => {
-    const promoting = promotion.square
-    const board = boardDisplay
-    board[promoting] = piece
-    setDisplay(board.slice())
-    setPromotion({ square: -1, piece: null })
+    boardDisplay[promotion] = piece
+    setDisplay(boardDisplay.slice())
+    setPromotion(-1)
+    executedMoves.clear()
   }
 
   const checkEndGame: 0 | 1 | 2 | 3 = (() => {
@@ -452,9 +468,9 @@ export const useChessHook = () => {
     turn,
     gameState,
     promotion,
-    handleMove,
-    handlePromote,
     inDanger,
     showLegalSquares,
+    handleMove,
+    handlePromote,
   }
 }

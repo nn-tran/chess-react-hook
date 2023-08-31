@@ -5,18 +5,28 @@ import "./index.css"
 import "chess-merida-font/css/chessmerida-webfont.css"
 
 import { data, Piece } from "./constants"
-import { Square, ReadOnlySquare } from "./squares";
-import { useChessHook } from "./chess-hook";
+import { Square, ReadOnlySquare } from "./squares"
+import { useChessHook } from "./chess-hook"
 
 const Board = () => {
-  const { legalMoves, pieceStates, boardDisplay, turn, gameState, promotion, inDanger, handleMove, handlePromote, showLegalSquares } = useChessHook();
+  const {
+    legalMoves,
+    pieceStates,
+    boardDisplay,
+    turn,
+    gameState,
+    promotion,
+    inDanger,
+    showLegalSquares,
+    handleMove,
+    handlePromote,
+  } = useChessHook()
 
   const [selected, setSelected] = React.useState(-1)
 
-
   //just handle clicking a square
   const handleClick = (i: number) => {
-    if (promotion.square >= 0) return //promoting, board locked
+    if (promotion >= 0) return //promoting, board locked
     if (gameState)
       //game state > 0 is game over
       return
@@ -64,15 +74,11 @@ const Board = () => {
   }
 
   const renderPromoteSquare = (i: Piece) => {
-    if (promotion.square < 0) return null //only visible for promotion
+    if (promotion < 0) return null //only visible for promotion
     if ((data[i].color === 2) !== turn) return null //show the right color
     return (
       <td key={i}>
-        <Square
-          value={i}
-          color={"#fff"}
-          onClick={() => handlePromote(i)}
-        />
+        <Square value={i} color={"#fff"} onClick={() => handlePromote(i)} />
       </td>
     )
   }
@@ -82,8 +88,7 @@ const Board = () => {
   if (gameState === 1) {
     const wKing = pieceStates[12]
     const bKing = pieceStates[28]
-    if (inDanger(wKing, boardDisplay) & 2 && turn)
-      gameOverStatus = "Black wins"
+    if (inDanger(wKing, boardDisplay) & 2 && turn) gameOverStatus = "Black wins"
     else if (inDanger(bKing, boardDisplay) & 1 && !turn)
       gameOverStatus = "White wins"
     else gameOverStatus = "Stalemate"

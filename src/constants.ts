@@ -1,6 +1,6 @@
 
 //mailbox from https://www.chessprogramming.org/10x12_Board
-export const mailbox = [
+export const mailbox = new Int8Array([
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1,  0,  1,  2,  3,  4,  5,  6,  7, -1,
@@ -13,9 +13,9 @@ export const mailbox = [
   -1, 56, 57, 58, 59, 60, 61, 62, 63, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-]
+])
 
-export const mailbox64 = [
+export const mailbox64 = new Int8Array([
   21, 22, 23, 24, 25, 26, 27, 28,
   31, 32, 33, 34, 35, 36, 37, 38,
   41, 42, 43, 44, 45, 46, 47, 48,
@@ -24,7 +24,7 @@ export const mailbox64 = [
   71, 72, 73, 74, 75, 76, 77, 78,
   81, 82, 83, 84, 85, 86, 87, 88,
   91, 92, 93, 94, 95, 96, 97, 98
-]
+])
 
 export type Piece = keyof typeof data;
 
@@ -44,13 +44,13 @@ export const data = {
   '\u265a':{ color: 2, hash: 11,name: 'K', slide: false, offset: [ -11, -10, -9, -1, 1,  9, 10, 11 ]  /* KING */},
 }
 
-export const startingPosition = [
+export const startingPosition = new Int8Array([
   48, 49, 50, 51, 52, 53, 54, 55,
   56, 57, 58, 59, 60, 61, 62, 63,//white
   8,  9, 10, 11, 12, 13, 14, 15,
   0,  1,  2,  3,  4,  5,  6,  7,//black,
   -1//sentinel
-]
+])
 
 export const startingPieceMap: {[key: number]: number} = {
   0: 24, 1: 25, 2: 26, 3: 27, 4: 28, 5: 29, 6: 30, 7: 31, 8: 16, 9: 17, 10: 18, 11: 19, 12: 20, 13: 21, 14: 22, 15: 23, 
@@ -93,12 +93,12 @@ startingBoard[13] = "\u265f"
 startingBoard[14] = "\u265f"
 startingBoard[15] = "\u265f"
 
-export enum PieceColor {
+export const enum PieceColor {
   White = 1,
   Black = 2,
 }
 
-export const startingColors: (PieceColor | null)[] = Array(64).fill(null)
+export const startingColors = new Int8Array(64)
 for (let i = 0; i < 8; ++i) {
   startingColors[i + 48] = PieceColor.White
   startingColors[i + 56] = PieceColor.White
@@ -106,7 +106,7 @@ for (let i = 0; i < 8; ++i) {
   startingColors[i] = PieceColor.Black
 }
 
-export const empty64: number[] = Array(64).fill(0)
+export const empty64 = new Int8Array(64)
 
 //initialize a table of hashes for a modified Zobrist hashing
 //https://www.chessprogramming.org/Zobrist_Hashing
