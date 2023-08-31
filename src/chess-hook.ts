@@ -246,7 +246,7 @@ export const useChessHook = () => {
         for (let n = i; ; ) {
           n = mailbox[mailbox64[n] + offset]
           if (n === -1) break /* outside board */
-          if (colors[n] !== null) {
+          if (colors[n] !== 0) {
             if (colors[n] === enemy)
               moves.push([
                 pieceIdx,
@@ -282,7 +282,7 @@ export const useChessHook = () => {
         }
       }
       const n = mailbox[mailbox64[i] + (piece as { move: number }).move] //moving forward
-      if (colors[n] === null) {
+      if (colors[n] === 0) {
         if ((n <= 7 && n >= 0) || (n <= 63 && n >= 56)) {
           //pawns reaching last rank must promote
           moves.push([pieceIdx, i, n, MoveType.QuietPromote])
@@ -294,7 +294,7 @@ export const useChessHook = () => {
           ) {
             //if the piece could land on the 3rd/6th rank, it must have started from the origin
             const m = mailbox[mailbox64[n] + (piece as { move: number }).move]
-            if (colors[m] === null) {
+            if (colors[m] === 0) {
               moves.push([pieceIdx, i, m, -n]) //type carries information required for en passant
             }
           }
@@ -309,10 +309,10 @@ export const useChessHook = () => {
         board[58] === null &&
         board[59] === null
       ) {
-        moves.push([pieceIdx, i, i - 2, 4])
+        moves.push([pieceIdx, i, i - 2, MoveType.LongCastle])
       }
       if (castleAvailable[1] && board[61] === null && board[62] === null) {
-        moves.push([pieceIdx, i, i + 2, 5])
+        moves.push([pieceIdx, i, i + 2, MoveType.ShortCastle])
       }
     } else if (pieceDisplay === "\u265a") {
       if (
@@ -321,12 +321,13 @@ export const useChessHook = () => {
         board[2] === null &&
         board[3] === null
       ) {
-        moves.push([pieceIdx, i, i - 2, 6])
+        moves.push([pieceIdx, i, i - 2, MoveType.BLongCastle])
       }
       if (castleAvailable[3] && board[5] === null && board[6] === null) {
-        moves.push([pieceIdx, i, i + 2, 7])
+        moves.push([pieceIdx, i, i + 2, MoveType.BShortCastle])
       }
     }
+    console.log(moves)
     return moves
   }
 
